@@ -1,0 +1,107 @@
+import contextlib
+import logging
+from collections.abc import AsyncIterator
+
+import click
+import mcp.types as types
+from mcp.server.lowlevel import Server
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.types import Receive, Scope, Send
+
+from project.server_tool.tool_manager import call_api_tool, get_tool_definitions
+from project.server_tool import start_config_watcher
+
+logger = logging.getLogger(__name__)
+
+@click.command()
+@click.option("--port", default=3000, help="Port to listen on for HTTP")
+@click.option(
+    "--log-level",
+    default="INFO",
+    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+)
+@click.option(
+    "--json-response",
+    is_flag=True,
+    default=False,
+    help="Enable JSON responses instead of SSE streams",
+)
+def main(
+    port: int,
+    log_level: str,
+    json_response: bool,
+) -> int:
+    # Configure logging
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper()),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+    app = Server("mcp-streamable-http-stateless")
+
+    @app.call_tool()
+    async def call_tool(
+        name: str, arguments: dict
+    ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+
+        try:
+            result = await call_api_tool(name, arguments)
+            return [types.TextContent(type="text", text=str(result))]
+        except ValueError as e:
+            return [types.TextContent(type="text", text=str(e))]
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"Error calling tool {name}: {str(e)}")]
+
+    @app.list_tools()
+    async def list_tools() -> list[types.Tool]:
+        tool_definitions = await get_tool_definitions()
+        # print(tool_definitions)
+        return [
+            types.Tool(
+                name=tool["name"],
+                description=tool["description"],
+                inputSchema=tool["inputSchema"],
+            )
+            for tool in tool_definitions
+        ]
+
+    # Create the session manager with true stateless mode
+    session_manager = StreamableHTTPSessionManager(
+        app=app,
+        event_store=None,
+        json_response=json_response,
+        stateless=True,
+    )
+
+    async def handle_streamable_http(
+        scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        await session_manager.handle_request(scope, receive, send)
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app: Starlette) -> AsyncIterator[None]:
+        """Context manager for session manager."""
+        async with session_manager.run():
+            logger.info("Application started with StreamableHTTP session manager!")
+            try:
+                yield
+            finally:
+                logger.info("Application shutting down...")
+
+    # Create an ASGI application using the transport
+    starlette_app = Starlette(
+        debug=True,
+        routes=[
+            Mount("/mcp", app=handle_streamable_http),
+        ],
+        lifespan=lifespan,
+    )
+
+    import uvicorn
+
+    uvicorn.run(starlette_app, host="127.0.0.1", port=port)
+
+    return 0
+
