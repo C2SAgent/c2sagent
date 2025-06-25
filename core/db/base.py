@@ -1,38 +1,32 @@
-# base.py
-from typing import Any, Dict, List, Optional, Union
-from sqlalchemy import create_engine, exc
+from typing import List, Dict, Optional, Type, Any
+from unittest.mock import Base
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql.expression import Executable
+from sqlalchemy.exc import SQLAlchemyError
 import logging
 
-Base = declarative_base()
 
-class PostgreSQLCRUD:
-    """PostgreSQL 基础 CRUD 操作类"""
+
+class DatabaseManager:
+    """数据库操作封装类"""
     
     def __init__(self, db_url: str, pool_size: int = 5, max_overflow: int = 10):
         """
         初始化数据库连接
         
-        :param db_url: 数据库连接字符串
-                      格式: postgresql://username:password@host:port/database
+        :param db_url: 数据库连接字符串 (e.g. "postgresql://user:password@localhost/dbname")
         :param pool_size: 连接池大小
         :param max_overflow: 最大溢出连接数
         """
-        try:
-            self.engine = create_engine(
-                db_url,
-                pool_size=pool_size,
-                max_overflow=max_overflow,
-                pool_pre_ping=True,  # 自动检测连接是否有效
-                echo=False          # 设为True可查看SQL日志
-            )
-            self.Session = scoped_session(sessionmaker(bind=self.engine))
-            logging.info("PostgreSQL connection established successfully")
-        except exc.SQLAlchemyError as e:
-            logging.error(f"Database connection failed: {e}")
-            raise
+        self.engine = create_engine(
+            db_url,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_pre_ping=True,
+            echo=False  # 设为True可查看SQL日志
+        )
+        self.Session = scoped_session(sessionmaker(bind=self.engine))
+        logging.info("Database connection established")
 
     def get_session(self):
         """获取新的数据库会话"""
@@ -44,8 +38,8 @@ class PostgreSQLCRUD:
 
     def fetch_all(
         self, 
-        model: Base, 
-        filters: Optional[Dict] = None, 
+        model: Type[Base], 
+        filters: Optional[Dict] = None,
         order_by: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None
@@ -54,8 +48,8 @@ class PostgreSQLCRUD:
         查询多条记录
         
         :param model: SQLAlchemy 模型类
-        :param filters: 过滤条件字典，如 {"name": "test"}
-        :param order_by: 排序字段，如 "id desc"
+        :param filters: 过滤条件字典 (e.g. {"name": "test"})
+        :param order_by: 排序字段 (e.g. "id desc")
         :param limit: 返回记录数限制
         :param offset: 偏移量
         :return: 模型实例列表
@@ -64,11 +58,13 @@ class PostgreSQLCRUD:
         try:
             query = session.query(model)
             
+            # 应用过滤条件
             if filters:
                 for key, value in filters.items():
                     if hasattr(model, key):
                         query = query.filter(getattr(model, key) == value)
             
+            # 应用排序
             if order_by:
                 if "desc" in order_by.lower():
                     field = order_by.split()[0]
@@ -76,14 +72,14 @@ class PostgreSQLCRUD:
                 else:
                     query = query.order_by(getattr(model, order_by))
             
+            # 应用分页
             if limit:
                 query = query.limit(limit)
-            
             if offset:
                 query = query.offset(offset)
                 
             return query.all()
-        except exc.SQLAlchemyError as e:
+        except SQLAlchemyError as e:
             session.rollback()
             logging.error(f"Fetch all error: {e}")
             raise
@@ -92,7 +88,7 @@ class PostgreSQLCRUD:
 
     def fetch_one(
         self, 
-        model: Base, 
+        model: Type[Base], 
         filters: Optional[Dict] = None
     ) -> Optional[Base]:
         """
@@ -105,49 +101,24 @@ class PostgreSQLCRUD:
         session = self.get_session()
         try:
             query = session.query(model)
-            
             if filters:
                 for key, value in filters.items():
                     if hasattr(model, key):
                         query = query.filter(getattr(model, key) == value)
-            
             return query.first()
-        except exc.SQLAlchemyError as e:
+        except SQLAlchemyError as e:
             session.rollback()
             logging.error(f"Fetch one error: {e}")
             raise
         finally:
             self.close_session()
 
-    def execute_raw_sql(
-        self, 
-        sql: str, 
-        params: Optional[Dict] = None
-    ) -> List[Dict]:
-        """
-        执行原始SQL查询
-        
-        :param sql: SQL语句
-        :param params: 参数字典
-        :return: 结果字典列表
-        """
-        session = self.get_session()
-        try:
-            result = session.execute(sql, params or {})
-            return [dict(row) for row in result]
-        except exc.SQLAlchemyError as e:
-            session.rollback()
-            logging.error(f"Raw SQL error: {e}")
-            raise
-        finally:
-            self.close_session()
-
-    def insert(self, model: Base, data: Dict) -> Base:
+    def insert(self, model: Type[Base], data: Dict) -> Base:
         """
         插入单条记录
         
         :param model: SQLAlchemy 模型类
-        :param data: 数据字典
+        :param data: 数据字典 (需与模型字段匹配)
         :return: 插入后的模型实例
         """
         session = self.get_session()
@@ -157,14 +128,14 @@ class PostgreSQLCRUD:
             session.commit()
             session.refresh(instance)
             return instance
-        except exc.SQLAlchemyError as e:
+        except SQLAlchemyError as e:
             session.rollback()
             logging.error(f"Insert error: {e}")
             raise
         finally:
             self.close_session()
 
-    def bulk_insert(self, model: Base, data_list: List[Dict]) -> List[Base]:
+    def bulk_insert(self, model: Type[Base], data_list: List[Dict]) -> List[Base]:
         """
         批量插入记录
         
@@ -178,7 +149,7 @@ class PostgreSQLCRUD:
             session.bulk_save_objects(instances)
             session.commit()
             return instances
-        except exc.SQLAlchemyError as e:
+        except SQLAlchemyError as e:
             session.rollback()
             logging.error(f"Bulk insert error: {e}")
             raise
@@ -187,7 +158,7 @@ class PostgreSQLCRUD:
 
     def update(
         self, 
-        model: Base, 
+        model: Type[Base], 
         filters: Dict, 
         update_data: Dict
     ) -> int:
@@ -203,6 +174,7 @@ class PostgreSQLCRUD:
         try:
             query = session.query(model)
             
+            # 应用过滤条件
             for key, value in filters.items():
                 if hasattr(model, key):
                     query = query.filter(getattr(model, key) == value)
@@ -210,14 +182,14 @@ class PostgreSQLCRUD:
             count = query.update(update_data, synchronize_session=False)
             session.commit()
             return count
-        except exc.SQLAlchemyError as e:
+        except SQLAlchemyError as e:
             session.rollback()
             logging.error(f"Update error: {e}")
             raise
         finally:
             self.close_session()
 
-    def delete(self, model: Base, filters: Dict) -> int:
+    def delete(self, model: Type[Base], filters: Dict) -> int:
         """
         删除记录
         
@@ -229,6 +201,7 @@ class PostgreSQLCRUD:
         try:
             query = session.query(model)
             
+            # 应用过滤条件
             for key, value in filters.items():
                 if hasattr(model, key):
                     query = query.filter(getattr(model, key) == value)
@@ -236,12 +209,39 @@ class PostgreSQLCRUD:
             count = query.delete(synchronize_session=False)
             session.commit()
             return count
-        except exc.SQLAlchemyError as e:
+        except SQLAlchemyError as e:
             session.rollback()
             logging.error(f"Delete error: {e}")
             raise
         finally:
             self.close_session()
+
+    def execute_raw_sql(self, sql: str, params: Optional[Dict] = None) -> List[Dict]:
+        """
+        执行原始SQL查询
+        
+        :param sql: SQL语句
+        :param params: 参数字典
+        :return: 结果字典列表
+        """
+        session = self.get_session()
+        try:
+            result = session.execute(sql, params or {})
+            return [dict(row) for row in result]
+        except SQLAlchemyError as e:
+            session.rollback()
+            logging.error(f"Raw SQL error: {e}")
+            raise
+        finally:
+            self.close_session()
+
+    def create_all_tables(self):
+        """创建所有表结构"""
+        Base.metadata.create_all(self.engine)
+
+    def drop_all_tables(self):
+        """删除所有表结构（谨慎使用）"""
+        Base.metadata.drop_all(self.engine)
 
     def __enter__(self):
         """支持上下文管理"""
@@ -252,6 +252,4 @@ class PostgreSQLCRUD:
         """退出上下文时自动关闭会话"""
         if exc_type is not None:
             self.session.rollback()
-        else:
-            self.session.commit()
         self.close_session()
