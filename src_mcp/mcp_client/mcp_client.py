@@ -27,7 +27,7 @@ class ChatSession:
         self.servers: dict[str, Client] = servers
         self.llm_client: LLMClient = llm_client
 
-    async def process_llm_response(self, llm_response: str) -> str:
+    async def process_llm_response(self, llm_response: str, mcp_server_id) -> str:
         try:
             # TODO: 需要扩展JSON验证
             json_match = re.search(r"\[.*?\]", llm_response, re.DOTALL)
@@ -46,27 +46,29 @@ class ChatSession:
                 if "tool" in tool_call and "arguments" in tool_call:
                     logging.info(f"Executing tool: {tool_call['tool']}")
                     logging.info(f"With arguments: {tool_call['arguments']}")
-                    for server_name in self.servers:
-                        async with self.servers[server_name] as server:
-                            tools = await server.list_tools()
-                            if any(tool.name == tool_call["tool"] for tool in tools):
-                                try:
-                                    result: list = await server.call_tool(
-                                        tool_call["tool"],
-                                        tool_call["arguments"]
-                                        if len(tool_call["arguments"]) > 0
-                                        else None,
-                                    )
-                                    logging.info(
-                                        f"{tool_call['tool']} execution result: {result}"
-                                    )
-                                    
-                                    # 过滤文本信息
-                                    results += f"{tool_call['tool']} execution result: {[res.text for res in filter(lambda x: True if isinstance(x, TextContent) else False, result)]}\n"
-                                except Exception as e:
-                                    error_msg = f"Error executing tool: {str(e)}"
-                                    logging.error(error_msg)
-                                    return error_msg
+                    server_table = None
+                    server_table["command"] = "url"
+                    server_table["url"] = f"http://localhost:3000/mcp/{mcp_server_id}"
+                    async with server_table as server:
+                        tools = await server.list_tools()
+                        if any(tool.name == tool_call["tool"] for tool in tools):
+                            try:
+                                result: list = await server.call_tool(
+                                    tool_call["tool"],
+                                    tool_call["arguments"]
+                                    if len(tool_call["arguments"]) > 0
+                                    else None,
+                                )
+                                logging.info(
+                                    f"{tool_call['tool']} execution result: {result}"
+                                )
+                                
+                                # 过滤文本信息
+                                results += f"{tool_call['tool']} execution result: {[res.text for res in filter(lambda x: True if isinstance(x, TextContent) else False, result)]}\n"
+                            except Exception as e:
+                                error_msg = f"Error executing tool: {str(e)}"
+                                logging.error(error_msg)
+                                return error_msg
 
             if results:
                 logging.info(f"Final results: {results}")
@@ -95,15 +97,19 @@ class ChatSession:
             {chr(10).join(args_desc)}
         """
 
-    async def _get_agent_response(self, messages):
+    async def _get_agent_response(self, messages, mcp_server_id):
+        # for server_name in self.servers:
+            
+        server_table = None
+        server_table["command"] = "url"
+        server_table["url"] = f"http://localhost:3000/mcp/{mcp_server_id}"
         tools_description = ""
-        for server_name in self.servers:
-            async with self.servers[server_name] as server:
-                tools = await server.list_tools()
-                tools_description += f"Service name: {server_name}\n"
-                tools_description += "\n".join(
-                    [self.format_for_llm(tool) for tool in tools]
-                )
+        async with server_table as server:
+            tools = await server.list_tools()
+            tools_description += f"Service name: {server_name}\n"
+            tools_description += "\n".join(
+                [self.format_for_llm(tool) for tool in tools]
+            )
 
         system_message = (
             "You are a helpful assistant  have access to these services and the tools they offer:\n\n"
@@ -141,13 +147,13 @@ class ChatSession:
         llm_response = await self.llm_client.get_response(messages)
         logging.info(f"\nAssistant: {llm_response}")
 
-        result = await self.process_llm_response(llm_response)
+        result = await self.process_llm_response(llm_response, mcp_server_id)
         while result != llm_response:
             messages.append({"role": "assistant", "content": llm_response})
             messages.append({"role": "user", "content": result})
             llm_response = await self.llm_client.get_response(messages)
             logging.info(f"\nAssistant: {llm_response}")
-            result = await self.process_llm_response(llm_response)
+            result = await self.process_llm_response(llm_response, mcp_server_id)
         return result
 
     # TODO: 待完成流式agent接口

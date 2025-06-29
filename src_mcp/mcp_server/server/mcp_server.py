@@ -7,11 +7,12 @@ import mcp.types as types
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.applications import Starlette
-from starlette.routing import Mount
+from starlette.routing import Mount, Route
 from starlette.types import Receive, Scope, Send
 
-from project.server_tool.tool_manager import call_api_tool, get_tool_definitions
-from project.server_tool import start_config_watcher
+from src_mcp.mcp_server.manager_server_tool import EnhancedServerToolManager
+from src_mcp.mcp_server.manager_tool import call_api_tool
+from server_tool import start_config_watcher
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,6 @@ def main(
     async def call_tool(
         name: str, arguments: dict
     ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-
         try:
             result = await call_api_tool(name, arguments)
             return [types.TextContent(type="text", text=str(result))]
@@ -54,10 +54,10 @@ def main(
         except Exception as e:
             return [types.TextContent(type="text", text=f"Error calling tool {name}: {str(e)}")]
 
+    # We'll modify list_tools to accept an optional tool_group parameter
     @app.list_tools()
-    async def list_tools() -> list[types.Tool]:
-        tool_definitions = await get_tool_definitions()
-        # print(tool_definitions)
+    async def list_tools(tool_group: str | None = None) -> list[types.Tool]:
+        tool_definitions = EnhancedServerToolManager.get_tools_by_server(tool_group)
         return [
             types.Tool(
                 name=tool["name"],
@@ -78,6 +78,12 @@ def main(
     async def handle_streamable_http(
         scope: Scope, receive: Receive, send: Send
     ) -> None:
+        # Extract tool_group from path if present
+        path_parts = scope["path"].strip("/").split("/")
+        tool_group = path_parts[1] if len(path_parts) > 1 else None
+        
+        # Store tool_group in the scope so session_manager can access it
+        scope["tool_group"] = tool_group
         await session_manager.handle_request(scope, receive, send)
 
     @contextlib.asynccontextmanager
@@ -95,6 +101,7 @@ def main(
         debug=True,
         routes=[
             Mount("/mcp", app=handle_streamable_http),
+            Route("/mcp/{tool_group:path}", app=handle_streamable_http),
         ],
         lifespan=lifespan,
     )
@@ -104,4 +111,3 @@ def main(
     uvicorn.run(starlette_app, host="127.0.0.1", port=port)
 
     return 0
-

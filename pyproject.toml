@@ -44,4 +44,5 @@ dependencies = [
     "websockets==15.0.1",
     "sqlalchemy",
     "psycopg2",
+    "tinydb>=4.8.2",
 ]

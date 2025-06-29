@@ -10,16 +10,21 @@ from a2a.utils import new_agent_text_message, new_task, new_text_artifact
 from typing import override
 
 from agent import Agent
+from core.db.base import DatabaseManager
 
+db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
 class LifeAgentExecutor(AgentExecutor):
     """Test AgentProxy Implementation."""
 
-    def __init__(self):
+    def __init__(self, agent_index: Optional[str] = None):
+        self.agent_index = agent_index
+        self.agent_find = db.fetch_one(AgentCard, {"name": "AI Assistant"})
+        self.mcp_server_id = db.fetch_one(AgentCardAndMcpServer, {"agent_card_id": self.agent_find.id}).mcp_server_id
         self.agent = Agent(
-            mode='stream',
+            mode=self.agent_find.mode,
             token_stream_callback=print,
-            mcp_url='http://localhost:8000/chat/chat_with_mcp',
+            mcp_url=f'http://localhost:8000/mcp_client/{self.mcp_server_id}',
         )
 
     @override
@@ -37,6 +42,8 @@ class LifeAgentExecutor(AgentExecutor):
         if not task:
             task = new_task(context.message)
             event_queue.enqueue_event(task)
+
+
 
         event = await self.agent.stream(query)
         event_queue.enqueue_event(

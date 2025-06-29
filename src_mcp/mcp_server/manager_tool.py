@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 from tinydb import TinyDB, Query
-db = TinyDB(r'project\server_tool\server_tool_life.json')
+db = TinyDB(r'project\server_tool\server_tool.json')
 tools_table = db.table('tools')
 
 async def get_tool_definitions():

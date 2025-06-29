@@ -1,45 +1,57 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Literal, Optional
 import asyncio
-from typing import Literal
-
-
-import asyncclick as click
-import colorama
 from agent import Agent
+from core.db.base import DatabaseManager
 
+app = FastAPI()
+db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
-@click.command()
-@click.option('--host', 'host', default='localhost')
-@click.option('--port', 'port', default=9999)
-@click.option('--mode', 'mode', default='streaming')
-@click.option('--question', 'question', required=True)
-async def a_main(
-    host: str,
-    port: int,
-    mode: Literal['completion', 'streaming'],
-    question: str,
-):
-    """Main function to run the A2A Repo Agent client.
+class AgentRequest(BaseModel):
+    host: str = 'localhost'
+    port: int = 10001
+    mode: Literal['completion', 'streaming'] = 'streaming'
+    user_id: str
+    question: str
 
+class AgentResponse(BaseModel):
+    result: str
+
+@app.post("/ask-agent", response_model=AgentResponse)
+async def ask_agent(request: AgentRequest):
+    """Endpoint to interact with the Agent.
+    
     Args:
-        host (str): The host address to run the server on.
-        port (int): The port number to run the server on.
-        mode (Literal['completion', 'streaming']): The mode to run the server on.
-        question (str): The question to ask the Agent.
-    """  # noqa: E501
-    agent = Agent(
-        mode='stream',
-        token_stream_callback=None,
-        agent_urls=[f'http://{host}:{port}/'],
-    )
+        request (AgentRequest): Contains all the parameters needed to query the agent.
+        
+    Returns:
+        AgentResponse: The response from the agent.
+    """
+    try:
+        agent_find = db.fetch_one(AgentCard, {"user_id": request.user_id})
+        if not agent_find:
+            raise HTTPException(status_code=404, detail="Agent not found for this user")
 
-    result = await agent.stream(question)
-    print(result)
+        agent = Agent(
+            mode=request.mode,
+            token_stream_callback=None,
+            agent_urls=[
+                f'http://{request.host}:{request.port}/{agent_index}'
+                for agent_index in agent_find.id
+            ],
+        )
 
+        if request.mode == 'streaming':
+            result = await agent.stream(request.question)
+        else:
+            result = await agent.complete(request.question)
 
-def main() -> None:
-    """Main function to run the A2A Repo Agent client."""
-    asyncio.run(a_main())
-
+        return AgentResponse(result=result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == '__main__':
-    main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -16,6 +16,7 @@ class AgentCard(Base):
     version = Column(String(50))
     streaming = Column(Boolean)
     examples = Column(JSONB)
+    user_id = Column(String(255))
     
     # 定义关系
     skills = relationship("AgentCardAndSkill", back_populates="agent_card")
