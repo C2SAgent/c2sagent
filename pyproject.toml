@@ -45,4 +45,9 @@ dependencies = [
     "sqlalchemy",
     "psycopg2",
     "tinydb>=4.8.2",
+    "jose>=1.0.0",
+    "passlib>=1.7.4",
+    "python-jose[cryptography]>=3.5.0",
+    "requests>=2.32.4",
+    "aiohttp>=3.12.13",
 ]
