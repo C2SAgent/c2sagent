@@ -1,45 +1,40 @@
 # 初始化
-from model.model_agent import AgentCard  # 假设这是之前定义的模型
 from core.db.base import DatabaseManager
+from model.model_agent import AgentCard, Skill, UserConfig
 
-# 初始化数据库连接
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
-# 创建所有表（首次运行时需要）
-# db.create_all_tables()
+db = DatabaseManager('postgresql://postgres:postgre@localhost/manager_agent')
 
-# 插入AgentCard记录
-new_agent = db.insert(AgentCard, {
-    "name": "AI Assistant",
-    "description": "智能助手",
-    "streaming": True
-})
+# 查询单个用户
+user = db.fetch_one(UserConfig, name='testuser')
 
-# 查询所有AgentCard
-agents = db.fetch_all(AgentCard)
-for agent in agents:
-    print(agent.name, agent.description)
+# 查询所有agent card并按名称排序
+agents = db.fetch_all(AgentCard, order_by='name')
 
-# 条件查询
-python_agents = db.fetch_all(
-    AgentCard,
-    filters={"name": "AI Assistant"},
-    order_by="id desc",
-    limit=5
-)
+# 复杂查询
+from sqlalchemy import or_
+conditions = [
+    AgentCard.name.like('%chat%'),
+    or_(
+        AgentCard.streaming == True,
+        AgentCard.version == '1.0'
+    )
+]
+results = db.fetch_complex(AgentCard, conditions, order_by=['name', 'id'])
 
-# 更新记录
-updated_count = db.update(
-    AgentCard,
-    filters={"id": 1},
-    update_data={"description": "新版智能助手"}
-)
+# # 插入新记录
+# new_user = db.insert(UserConfig, {
+#     'name': 'super_admin',
+#     'password': 'super_admin',
+#     'core_llm_name': 'deepseek',
+#     'core_llm_url': 'https://api.deepseek.com/v1',
+#     'core_llm_key': 'sk-fc9e70085fe4411fb5b3f5aa121ee9a9'
+# })
 
-# 删除记录
-deleted_count = db.delete(AgentCard, {"id": 1})
+# 查询或插入
+skill, created = db.fetch_or_insert(Skill, 
+                                  {'name': 'new_skill'},
+                                  {'description': '默认描述'})
 
-# 使用上下文管理
-with DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent") as db:
-    agent = db.fetch_one(AgentCard, {"name": "AI Assistant"})
-    if agent:
-        db.update(AgentCard, {"id": agent.id}, {"version": "2.0"})
+user = db.fetch_all(UserConfig, {'name': 'super_admin'})
+print(user[0].password)

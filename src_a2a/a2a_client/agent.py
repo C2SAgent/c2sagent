@@ -29,7 +29,9 @@ from a2a.types import (
 )
 from jinja2 import Template
 
-# from no_llm_framework.client.constant import GOOGLE_API_KEY
+from core.db.base import DatabaseManager
+
+db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
 
 dir_path = Path(__file__).parent
@@ -44,7 +46,7 @@ with Path(dir_path / 'agent_answer.jinja').open('r') as f:
     agent_answer_template = Template(f.read())
 
 
-async def stream_llm(prompt: str) -> Generator[str]:
+async def stream_llm(prompt: str, llm_client) -> Generator[str]:
     """Stream LLM response.
 
     Args:
@@ -53,7 +55,7 @@ async def stream_llm(prompt: str) -> Generator[str]:
     Returns:
         Generator[str, None, None]: A generator of the LLM response.
     """
-    llm_client = LLMClient(os.getenv("API_KEY"))
+    # llm_client = LLMClient(os.getenv("API_KEY"))
     messages = [{"role": "system", "content": prompt}]
     response = await llm_client.get_response(messages)
     return response
@@ -66,9 +68,11 @@ class Agent:
         self,
         mode: Literal['complete', 'stream'] = 'stream',
         token_stream_callback: Callable[[str], None] | None = None,
+        user_id: str,
         agent_urls: list[str] | None = None,
         agent_prompt: str | None = None,
     ):
+        self.user_id = user_id
         self.mode = mode
         self.token_stream_callback = token_stream_callback
         self.agent_urls = agent_urls
@@ -105,7 +109,11 @@ class Agent:
         Returns:
             str or Generator[str]: The LLM response as a string or generator, depending on mode.
         """  # noqa: E501
-        return await stream_llm(prompt)
+        user_find = db.fetch_one(UserConfig, {"id": user_id})
+        core_llm_url = user_find.core_llm_url
+        core_llm_key = user_find.core_llm_key
+        llm_client = LLMClient(core_llm_url, core_llm_key)
+        return await stream_llm(prompt, llm_client)
 
     async def decide(
         self,

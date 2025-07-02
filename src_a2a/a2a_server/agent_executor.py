@@ -24,7 +24,7 @@ class LifeAgentExecutor(AgentExecutor):
         self.agent = Agent(
             mode=self.agent_find.mode,
             token_stream_callback=print,
-            mcp_url=f'http://localhost:8000/mcp_client/{self.mcp_server_id}',
+            mcp_url=f'http://localhost:8000/mcp_client/{self.mcp_server_id}/{self.agent_find.id}',
         )
 
     @override

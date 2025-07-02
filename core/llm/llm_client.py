@@ -11,10 +11,11 @@ from openai import AsyncOpenAI
 import datetime
 
 class LLMClient:
-    def __init__(self, api_key: str) -> None:
+    def __init__(self, api_key: str, llm_url: str) -> None:
         self.api_key: str = api_key
+        self.llm_url: str = llm_url
         self.client: AsyncOpenAI = AsyncOpenAI(
-            api_key=self.api_key, base_url="https://api.deepseek.com"
+            api_key=self.api_key, base_url=self.llm_url
         )
 
     async def get_stream_response(

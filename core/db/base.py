@@ -1,255 +1,258 @@
-from typing import List, Dict, Optional, Type, Any
-from unittest.mock import Base
-from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy import create_engine, and_
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-import logging
-
-
+from typing import Type, Any, List, Optional, Dict, Union
+from model.model_agent import Base  # 假设模型定义在models.py中
 
 class DatabaseManager:
-    """数据库操作封装类"""
+    """
+    通用的数据库操作类，使用fetch前缀命名查询方法
+    """
     
-    def __init__(self, db_url: str, pool_size: int = 5, max_overflow: int = 10):
+    def __init__(self, db_url: str, echo: bool = False):
         """
-        初始化数据库连接
+        初始化数据库操作类
         
-        :param db_url: 数据库连接字符串 (e.g. "postgresql://user:password@localhost/dbname")
-        :param pool_size: 连接池大小
-        :param max_overflow: 最大溢出连接数
+        Args:
+            db_url: 数据库连接URL，例如: 'postgresql://user:password@localhost/dbname'
+            echo: 是否输出SQL日志，默认为False
         """
-        self.engine = create_engine(
-            db_url,
-            pool_size=pool_size,
-            max_overflow=max_overflow,
-            pool_pre_ping=True,
-            echo=False  # 设为True可查看SQL日志
-        )
-        self.Session = scoped_session(sessionmaker(bind=self.engine))
-        logging.info("Database connection established")
+        self.engine = create_engine(db_url, echo=echo)
+        self.Session = sessionmaker(bind=self.engine)
+        Base.metadata.create_all(self.engine)
 
-    def get_session(self):
-        """获取新的数据库会话"""
+    def _get_session(self):
+        """获取一个新的数据库会话"""
         return self.Session()
 
-    def close_session(self):
-        """关闭当前线程的会话"""
-        self.Session.remove()
+    def _close_session(self, session):
+        """关闭数据库会话"""
+        if session:
+            session.close()
 
-    def fetch_all(
-        self, 
-        model: Type[Base], 
-        filters: Optional[Dict] = None,
-        order_by: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None
-    ) -> List[Base]:
+    def fetch_one(self, model: Type[Base], **filters) -> Optional[Any]:
         """
-        查询多条记录
+        根据条件获取单个记录
         
-        :param model: SQLAlchemy 模型类
-        :param filters: 过滤条件字典 (e.g. {"name": "test"})
-        :param order_by: 排序字段 (e.g. "id desc")
-        :param limit: 返回记录数限制
-        :param offset: 偏移量
-        :return: 模型实例列表
+        Args:
+            model: SQLAlchemy模型类
+            filters: 查询条件，例如 id=1, name='test'
+            
+        Returns:
+            查询到的记录对象或None
         """
-        session = self.get_session()
+        session = self._get_session()
+        try:
+            return session.query(model).filter_by(**filters).first()
+        finally:
+            self._close_session(session)
+
+    def fetch_all(self, model: Type[Base], 
+                 filters: Optional[Dict] = None,
+                 order_by: Optional[Union[str, List[str]]] = None,
+                 limit: Optional[int] = None,
+                 offset: Optional[int] = None) -> List[Any]:
+        """
+        获取多个记录，支持分页和排序
+        
+        Args:
+            model: SQLAlchemy模型类
+            filters: 查询条件字典
+            order_by: 排序字段，可以是字符串或字符串列表
+            limit: 返回记录数限制
+            offset: 偏移量
+            
+        Returns:
+            查询到的记录列表
+        """
+        session = self._get_session()
         try:
             query = session.query(model)
             
-            # 应用过滤条件
             if filters:
-                for key, value in filters.items():
-                    if hasattr(model, key):
-                        query = query.filter(getattr(model, key) == value)
-            
-            # 应用排序
+                query = query.filter_by(**filters)
+                
             if order_by:
-                if "desc" in order_by.lower():
-                    field = order_by.split()[0]
-                    query = query.order_by(getattr(model, field).desc())
+                if isinstance(order_by, str):
+                    query = query.order_by(order_by)
                 else:
-                    query = query.order_by(getattr(model, order_by))
-            
-            # 应用分页
+                    for field in order_by:
+                        query = query.order_by(field)
+                        
             if limit:
                 query = query.limit(limit)
+                
             if offset:
                 query = query.offset(offset)
                 
             return query.all()
-        except SQLAlchemyError as e:
-            session.rollback()
-            logging.error(f"Fetch all error: {e}")
-            raise
         finally:
-            self.close_session()
+            self._close_session(session)
 
-    def fetch_one(
-        self, 
-        model: Type[Base], 
-        filters: Optional[Dict] = None
-    ) -> Optional[Base]:
+    def fetch_complex(self, model: Type[Base], 
+                     conditions: List[Any],
+                     order_by: Optional[Union[str, List[str]]] = None,
+                     limit: Optional[int] = None,
+                     offset: Optional[int] = None) -> List[Any]:
         """
-        查询单条记录
+        复杂查询，支持多条件组合
         
-        :param model: SQLAlchemy 模型类
-        :param filters: 过滤条件字典
-        :return: 模型实例或None
+        Args:
+            model: SQLAlchemy模型类
+            conditions: 查询条件列表，可以使用and_、or_等组合
+            order_by: 排序字段
+            limit: 返回记录数限制
+            offset: 偏移量
+            
+        Returns:
+            查询到的记录列表
         """
-        session = self.get_session()
+        session = self._get_session()
         try:
             query = session.query(model)
-            if filters:
-                for key, value in filters.items():
-                    if hasattr(model, key):
-                        query = query.filter(getattr(model, key) == value)
-            return query.first()
-        except SQLAlchemyError as e:
-            session.rollback()
-            logging.error(f"Fetch one error: {e}")
-            raise
+            
+            if conditions:
+                query = query.filter(and_(*conditions))
+                
+            if order_by:
+                if isinstance(order_by, str):
+                    query = query.order_by(order_by)
+                else:
+                    for field in order_by:
+                        query = query.order_by(field)
+                        
+            if limit:
+                query = query.limit(limit)
+                
+            if offset:
+                query = query.offset(offset)
+                
+            return query.all()
         finally:
-            self.close_session()
+            self._close_session(session)
 
-    def insert(self, model: Type[Base], data: Dict) -> Base:
+    def insert(self, model: Type[Base], data: Dict[str, Any]) -> Any:
         """
-        插入单条记录
+        插入一条新记录
         
-        :param model: SQLAlchemy 模型类
-        :param data: 数据字典 (需与模型字段匹配)
-        :return: 插入后的模型实例
+        Args:
+            model: SQLAlchemy模型类
+            data: 要插入的数据字典
+            
+        Returns:
+            插入后的记录对象
         """
-        session = self.get_session()
+        session = self._get_session()
         try:
-            instance = model(**data)
-            session.add(instance)
+            obj = model(**data)
+            session.add(obj)
             session.commit()
-            session.refresh(instance)
-            return instance
+            session.refresh(obj)
+            return obj
         except SQLAlchemyError as e:
             session.rollback()
-            logging.error(f"Insert error: {e}")
-            raise
+            raise e
         finally:
-            self.close_session()
+            self._close_session(session)
 
-    def bulk_insert(self, model: Type[Base], data_list: List[Dict]) -> List[Base]:
+    def bulk_insert(self, model: Type[Base], data_list: List[Dict[str, Any]]) -> List[Any]:
         """
         批量插入记录
         
-        :param model: SQLAlchemy 模型类
-        :param data_list: 数据字典列表
-        :return: 插入后的模型实例列表
+        Args:
+            model: SQLAlchemy模型类
+            data_list: 要插入的数据字典列表
+            
+        Returns:
+            插入后的记录对象列表
         """
-        session = self.get_session()
+        session = self._get_session()
         try:
-            instances = [model(**data) for data in data_list]
-            session.bulk_save_objects(instances)
+            objects = [model(**data) for data in data_list]
+            session.bulk_save_objects(objects)
             session.commit()
-            return instances
+            return objects
         except SQLAlchemyError as e:
             session.rollback()
-            logging.error(f"Bulk insert error: {e}")
-            raise
+            raise e
         finally:
-            self.close_session()
+            self._close_session(session)
 
-    def update(
-        self, 
-        model: Type[Base], 
-        filters: Dict, 
-        update_data: Dict
-    ) -> int:
+    def update(self, model: Type[Base], 
+               filters: Dict[str, Any], 
+               update_data: Dict[str, Any]) -> int:
         """
         更新记录
         
-        :param model: SQLAlchemy 模型类
-        :param filters: 过滤条件字典
-        :param update_data: 更新数据字典
-        :return: 更新的记录数
+        Args:
+            model: SQLAlchemy模型类
+            filters: 筛选条件
+            update_data: 要更新的数据
+            
+        Returns:
+            更新的记录数
         """
-        session = self.get_session()
+        session = self._get_session()
         try:
-            query = session.query(model)
-            
-            # 应用过滤条件
-            for key, value in filters.items():
-                if hasattr(model, key):
-                    query = query.filter(getattr(model, key) == value)
-            
-            count = query.update(update_data, synchronize_session=False)
+            result = session.query(model).filter_by(**filters).update(update_data)
             session.commit()
-            return count
+            return result
         except SQLAlchemyError as e:
             session.rollback()
-            logging.error(f"Update error: {e}")
-            raise
+            raise e
         finally:
-            self.close_session()
+            self._close_session(session)
 
-    def delete(self, model: Type[Base], filters: Dict) -> int:
+    def delete(self, model: Type[Base], **filters) -> int:
         """
         删除记录
         
-        :param model: SQLAlchemy 模型类
-        :param filters: 过滤条件字典
-        :return: 删除的记录数
+        Args:
+            model: SQLAlchemy模型类
+            filters: 筛选条件
+            
+        Returns:
+            删除的记录数
         """
-        session = self.get_session()
+        session = self._get_session()
         try:
-            query = session.query(model)
-            
-            # 应用过滤条件
-            for key, value in filters.items():
-                if hasattr(model, key):
-                    query = query.filter(getattr(model, key) == value)
-            
-            count = query.delete(synchronize_session=False)
+            result = session.query(model).filter_by(**filters).delete()
             session.commit()
-            return count
+            return result
         except SQLAlchemyError as e:
             session.rollback()
-            logging.error(f"Delete error: {e}")
-            raise
+            raise e
         finally:
-            self.close_session()
+            self._close_session(session)
 
-    def execute_raw_sql(self, sql: str, params: Optional[Dict] = None) -> List[Dict]:
+    def fetch_or_insert(self, model: Type[Base], 
+                       filters: Dict[str, Any], 
+                       defaults: Optional[Dict[str, Any]] = None) -> tuple:
         """
-        执行原始SQL查询
+        查询或插入记录
         
-        :param sql: SQL语句
-        :param params: 参数字典
-        :return: 结果字典列表
+        Args:
+            model: SQLAlchemy模型类
+            filters: 查询条件
+            defaults: 不存在时插入的默认值
+            
+        Returns:
+            (object, created) 元组，object是查询或插入的对象，created表示是否是新插入的
         """
-        session = self.get_session()
+        session = self._get_session()
         try:
-            result = session.execute(sql, params or {})
-            return [dict(row) for row in result]
+            obj = session.query(model).filter_by(**filters).first()
+            if obj:
+                return obj, False
+            
+            create_data = {**filters, **(defaults or {})}
+            obj = model(**create_data)
+            session.add(obj)
+            session.commit()
+            session.refresh(obj)
+            return obj, True
         except SQLAlchemyError as e:
             session.rollback()
-            logging.error(f"Raw SQL error: {e}")
-            raise
+            raise e
         finally:
-            self.close_session()
-
-    def create_all_tables(self):
-        """创建所有表结构"""
-        Base.metadata.create_all(self.engine)
-
-    def drop_all_tables(self):
-        """删除所有表结构（谨慎使用）"""
-        Base.metadata.drop_all(self.engine)
-
-    def __enter__(self):
-        """支持上下文管理"""
-        self.session = self.get_session()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """退出上下文时自动关闭会话"""
-        if exc_type is not None:
-            self.session.rollback()
-        self.close_session()
+            self._close_session(session)

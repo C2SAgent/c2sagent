@@ -12,6 +12,11 @@ import datetime
 
 from project.core.llm_client import LLMClient
 
+from core.db.base import DatabaseManager
+
+db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+
+
 def load_mcp_config(file_path: str) -> dict[str, any]:
     with open(file_path, "r") as f:
         return json.load(f)
@@ -97,9 +102,12 @@ class ChatSession:
             {chr(10).join(args_desc)}
         """
 
-    async def _get_agent_response(self, messages, mcp_server_id):
+    async def _get_agent_response(self, messages, mcp_server_id, agent_id):
         # for server_name in self.servers:
-            
+        agent_find = db.fetch_one(AgentCard, {"id": agent_id})
+        self.llm_client.llm_url = agent_find.llm_url
+        self.llm_client.api_key = agent_find.llm_key
+
         server_table = None
         server_table["command"] = "url"
         server_table["url"] = f"http://localhost:3000/mcp/{mcp_server_id}"

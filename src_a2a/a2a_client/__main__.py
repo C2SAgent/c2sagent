@@ -29,7 +29,7 @@ async def ask_agent(request: AgentRequest):
         AgentResponse: The response from the agent.
     """
     try:
-        agent_find = db.fetch_one(AgentCard, {"user_id": request.user_id})
+        agent_find = db.fetch_all(AgentCard, {"user_id": request.user_id})
         if not agent_find:
             raise HTTPException(status_code=404, detail="Agent not found for this user")
 
@@ -40,6 +40,7 @@ async def ask_agent(request: AgentRequest):
                 f'http://{request.host}:{request.port}/{agent_index}'
                 for agent_index in agent_find.id
             ],
+            user_id=request.user_id
         )
 
         if request.mode == 'streaming':

@@ -7,7 +7,7 @@ from .dependencies import chat_session_depends
 chat_router = APIRouter(prefix="/mcp_client")
 
 @chat_router.post(
-    "/{mcp_server_id}", summary="与mcp agent进行对话"
+    "/{mcp_server_id}/{agent_id}", summary="与mcp agent进行对话"
 )
 async def answer_with_server_code(
     request: Request,
@@ -18,7 +18,7 @@ async def answer_with_server_code(
     print(query)
     try:
         messages = [{"role": "user", "content": query}]
-        answer = await chat_session._get_agent_response(messages, mcp_server_id)
+        answer = await chat_session._get_agent_response(messages, mcp_server_id, agent_id)
         result = BaseResponse(code=200, msg="success", data=answer)
         return result
     except Exception as e:
