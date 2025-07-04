@@ -1,4 +1,4 @@
-from project.view.pydantic_v2 import BaseModel, Field
+from .pydantic_v2 import BaseModel, Field
 from typing import (
     Any,
     List,

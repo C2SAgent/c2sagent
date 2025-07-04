@@ -53,6 +53,10 @@ class AgentCard(Base):
     examples = Column(JSONB)
     user_id = Column(Integer, ForeignKey('user_config.id'), nullable=False)
 
+    llm_name = Column(String(255))
+    llm_url = Column(String(255))
+    llm_key = Column(String(255))
+
     # 关系定义
     user_config = relationship("UserConfig", back_populates="agent_cards")
     skills = relationship("AgentCardAndSkill", back_populates="agent_card")
@@ -129,6 +133,7 @@ class McpServer(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
     url = Column(String(255), nullable=False)
+    user_id = Column(Integer, ForeignKey('user_config.id'), nullable=False)
     
     # 关系定义
     agent_cards = relationship("AgentCardAndMcpServer", back_populates="mcp_server")
@@ -150,8 +155,9 @@ class Tool(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    url = Column(String(255), nullable=False)
-    
+    description = Column(String(555), nullable=False)
+    user_id = Column(Integer, ForeignKey('user_config.id'), nullable=False)
+
     # 关系定义
     mcp_servers = relationship("McpServerAndTool", back_populates="tool")
 

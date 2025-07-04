@@ -7,7 +7,7 @@ from typing import Literal
 from uuid import uuid4
 import os
 
-from project.core.llm_client import LLMClient
+from core.llm.llm_client import LLMClient
 
 # import google.generativeai as genai
 import uuid
@@ -30,6 +30,7 @@ from a2a.types import (
 from jinja2 import Template
 
 from core.db.base import DatabaseManager
+from model.model_agent import UserConfig
 
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
@@ -68,7 +69,7 @@ class Agent:
         self,
         mode: Literal['complete', 'stream'] = 'stream',
         token_stream_callback: Callable[[str], None] | None = None,
-        user_id: str,
+        user_id: str = None,
         agent_urls: list[str] | None = None,
         agent_prompt: str | None = None,
     ):
@@ -109,7 +110,7 @@ class Agent:
         Returns:
             str or Generator[str]: The LLM response as a string or generator, depending on mode.
         """  # noqa: E501
-        user_find = db.fetch_one(UserConfig, {"id": user_id})
+        user_find = db.fetch_one(UserConfig, {"id": self.user_id})
         core_llm_url = user_find.core_llm_url
         core_llm_key = user_find.core_llm_key
         llm_client = LLMClient(core_llm_url, core_llm_key)

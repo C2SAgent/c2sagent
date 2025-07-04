@@ -50,4 +50,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "requests>=2.32.4",
     "aiohttp>=3.12.13",
+    "asyncclick>=8.1.8",
+    "a2a-sdk>=0.2.10",
+    "jinja2>=3.1.6",
 ]

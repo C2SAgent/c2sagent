@@ -4,6 +4,7 @@ from typing import Literal, Optional
 import asyncio
 from agent import Agent
 from core.db.base import DatabaseManager
+from model.model_agent import AgentCard
 
 app = FastAPI()
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")

@@ -10,9 +10,10 @@ from mcp.types import TextContent, Tool
 from openai import AsyncOpenAI
 import datetime
 
-from project.core.llm_client import LLMClient
+from core.llm.llm_client import LLMClient
 
 from core.db.base import DatabaseManager
+from model.model_agent import AgentCard, McpServer
 
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
@@ -31,6 +32,7 @@ class ChatSession:
     def __init__(self, servers: dict[str, Client], llm_client: LLMClient):
         self.servers: dict[str, Client] = servers
         self.llm_client: LLMClient = llm_client
+        self.server_name: str = None
 
     async def process_llm_response(self, llm_response: str, mcp_server_id) -> str:
         try:
@@ -108,13 +110,17 @@ class ChatSession:
         self.llm_client.llm_url = agent_find.llm_url
         self.llm_client.api_key = agent_find.llm_key
 
+        mcp_server_find = db.fetch_one(McpServer, {"id": mcp_server_id})
+        self.server_name = mcp_server_find.name
+
         server_table = None
         server_table["command"] = "url"
         server_table["url"] = f"http://localhost:3000/mcp/{mcp_server_id}"
         tools_description = ""
+
         async with server_table as server:
             tools = await server.list_tools()
-            tools_description += f"Service name: {server_name}\n"
+            tools_description += f"Service name: {self.server_name}\n"
             tools_description += "\n".join(
                 [self.format_for_llm(tool) for tool in tools]
             )

@@ -1,9 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Home from '@/views/Home.vue';
-import Login from '@/views/Auth/Login.vue';
-import Register from '@/views/Auth/Register.vue';
-import Logout from '@/views/Auth/Logout.vue';
-import { useAuthStore } from '@/stores/auth';
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,41 +7,87 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: Home,
-      meta: { requiresAuth: true },
+      component: () => import('@/views/Home.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/login',
       name: 'login',
-      component: Login,
-      meta: { requiresGuest: true },
+      component: () => import('@/views/Auth/Login.vue'),
+      meta: { skipAuthCheck: true }
     },
     {
       path: '/register',
       name: 'register',
-      component: Register,
-      meta: { requiresGuest: true },
+      component: () => import('@/views/Auth/Register.vue'),
+      meta: { skipAuthCheck: true }
     },
     {
       path: '/logout',
       name: 'logout',
-      component: Logout,
-      meta: { requiresAuth: true },
+      component: () => import('@/views/Auth/Logout.vue'),
+      meta: { requiresAuth: true }
     },
-  ],
-});
+    {
+      path: '/agent/create',
+      name: 'agent-create',
+      component: () => import('@/views/Agent/Create.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/agent/list',
+      name: 'agent-list',
+      component: () => import('@/views/Agent/List.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mcp/list',
+      name: 'mcp-list',
+      component: () => import('@/views/Mcp/List.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mcp/create',
+      name: 'mcp-create',
+      component: () => import('@/views/Mcp/Create.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mcp/:id/tools',
+      name: 'mcp-tools',
+      component: () => import('@/views/Mcp/Tool.vue'),
+      meta: { requiresAuth: true }
+    }
+  ]
+})
 
 router.beforeEach(async (to) => {
-  const authStore = useAuthStore();
-  await authStore.init();
+  // 跳过登录页的认证检查
+  if (to.meta.skipAuthCheck) {
+    return true
+  }
+
+  const authStore = useAuthStore()
+  
+  // 其他页面才需要初始化检查
+  if (!authStore.isInitialized) {
+    await authStore.init()
+  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return { name: 'login', query: { redirect: to.fullPath } };
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath },
+      replace: true
+    }
   }
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    return { name: 'home' };
+    return { 
+      name: 'home',
+      replace: true
+    }
   }
-});
+})
 
-export default router;
+export default router

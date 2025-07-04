@@ -7,10 +7,11 @@ from a2a.types import (
     TaskStatusUpdateEvent,
 )
 from a2a.utils import new_agent_text_message, new_task, new_text_artifact
-from typing import override
+from typing import Optional, override
 
 from agent import Agent
 from core.db.base import DatabaseManager
+from model.model_agent import AgentCard, AgentCardAndMcpServer
 
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 

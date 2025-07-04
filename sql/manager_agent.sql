@@ -14,7 +14,9 @@ CREATE TABLE llm_config (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     url VARCHAR(255) NOT NULL,
-    key VARCHAR(255) NOT NULL
+    key VARCHAR(255) NOT NULL,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user_config (id) ON DELETE CASCADE
 );
 
 -- 创建关联表user_config_and_llm_config
@@ -95,7 +97,9 @@ CREATE TABLE agent_card_and_output_mode (
 CREATE TABLE mcp_server (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    url VARCHAR(255) NOT NULL
+    url VARCHAR(255) NOT NULL,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user_config (id) ON DELETE CASCADE
 );
 
 -- 创建agent_card_and_mcp_server关联表（修复SERIAL拼写错误）

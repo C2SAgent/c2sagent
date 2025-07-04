@@ -1,10 +1,6 @@
 from tinydb import TinyDB, Query
 from typing import Dict, Any, List, Optional
 
-from core.db.base import DatabaseManager
-
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
-
 class EnhancedServerToolManager:
     def __init__(self, db_path='enhanced_server_tool_db.json'):
         """初始化增强版数据库"""
@@ -128,36 +124,34 @@ if __name__ == "__main__":
     
     # 定义工具数据
     tool1 = {
-        'name': 'ImageProcessor',
-        'description': '处理图像的AI工具',
-        'inputSchema': {
-            'type': 'object',
-            'properties': {
-                'image': {'type': 'string', 'format': 'binary'},
-                'operation': {'type': 'string', 'enum': ['resize', 'crop', 'filter']}
-            }
+        "name": "tool_calendar_day",
+        "description": "When the tool_calendar needs to be invoked: 1. If the user provides a specific date, use that date as the target date; 2. If the user refers to today or yesterday and so on, first obtain the actual current date; 3. Finally convert the date to YYYY-MM-DD format and if the month or day has a leading zero, keep only one digit, not '0M' or '0D' like that before calling tool_calendar.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"date": {"type": "string"}},
+            "required": ["date"]
         },
-        'handler': {
-            'url': 'https://api.example.com/v1/image',
-            'method': 'POST',
-            'key': 'img-12345-secret'
+        "handler": {
+            "type": "http_api",
+            "url": "http://v.juhe.cn/calendar/day",
+            "method": "GET",
+            "key": "9c23e0927915f865f02247162db8900d"
         }
     }
     
     tool2 = {
-        'name': 'TextAnalyzer',
-        'description': '分析文本情感的工具',
-        'inputSchema': {
-            'type': 'object',
-            'properties': {
-                'text': {'type': 'string'},
-                'language': {'type': 'string'}
-            }
+        "name": "tool_weather",
+        "description": "When the tool_calendar needs to be invoked: 1. You just need to provide the city name; 2. The tool_weather will return the future weather forecast for the next 5 days.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"]
         },
-        'handler': {
-            'url': 'https://api.example.com/v1/text',
-            'method': 'GET',
-            'key': 'text-67890-secret'
+        "handler": {
+            "type": "http_api",
+            "url": "http://apis.juhe.cn/simpleWeather/query",
+            "method": "GET",
+            "key": "5e7d8a7d2682ab0d42306237666af91e"
         }
     }
     

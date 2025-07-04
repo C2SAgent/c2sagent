@@ -26,3 +26,29 @@ export interface TokenPayload {
   exp: number;
   last_activity: number;
 }
+
+
+
+
+export interface AgentCard {
+  id: number
+  name: string
+  description?: string
+  llm_name: string
+  llm_url?: string
+  llm_key?: string
+  version?: string
+  streaming?: boolean
+  examples?: any[]
+}
+
+export interface McpServer {
+  id?: string
+  name: string
+}
+
+export interface Tool {
+  id: string
+  name: string
+  url: string
+}

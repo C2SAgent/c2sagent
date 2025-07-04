@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
-from project.view.utils import BaseResponse
-from project.mcp_client.mcp_client_life import ChatSession
+from api.utils.api_utils import BaseResponse
+from src_mcp.mcp_client.mcp_client import ChatSession
 import logging
-from .dependencies import chat_session_depends
+from ...dependencies import chat_session_depends
 
 chat_router = APIRouter(prefix="/mcp_client")
 

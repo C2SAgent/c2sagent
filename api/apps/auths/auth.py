@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from model.model_agent import UserConfig
 from .database import get_db
-from .schemas import TokenData
+from model.api_model.model_auth import TokenData
 
 # 密码哈希上下文
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

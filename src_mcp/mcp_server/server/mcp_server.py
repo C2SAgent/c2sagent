@@ -12,7 +12,6 @@ from starlette.types import Receive, Scope, Send
 
 from src_mcp.mcp_server.manager_server_tool import EnhancedServerToolManager
 from src_mcp.mcp_server.manager_tool import call_api_tool
-from server_tool import start_config_watcher
 
 logger = logging.getLogger(__name__)
 

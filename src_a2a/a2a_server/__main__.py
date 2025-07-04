@@ -1,7 +1,7 @@
 import click
 import uvicorn
 from a2a.server.agent_execution import AgentExecutor
-from a2a.server.apps.starlette_app import A2AStarletteApplication
+from a2a.server.apps.jsonrpc import A2AStarletteApplication
 from a2a.server.request_handlers.default_request_handler import (
     DefaultRequestHandler,
 )
@@ -16,9 +16,11 @@ from a2a.types import (
     SendMessageResponse,
 )
 from fastapi import Request
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from core.db.base import DatabaseManager
+from model.model_agent import AgentCardAndInputMode, AgentCardAndOutputMode, AgentCardAndSkill, InputMode, Skill
+from model.model_agent import AgentCard as AgentCard_
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
 # 假设这是您自定义的AgentExecutor
@@ -65,7 +67,7 @@ class DynamicAgentApp(A2AStarletteApplication):
 
             skill_id = db.fetch_one(AgentCardAndSkill, {"agent_card_id": agent_index}).skill_id
 
-            skill_find = db.fetch_all(Skills, {"id": skill_id})
+            skill_find = db.fetch_all(Skill, {"id": skill_id})
 
             skills = [
                 AgentSkill(
@@ -78,15 +80,15 @@ class DynamicAgentApp(A2AStarletteApplication):
                 for skill in skill_find
             ]            
 
-            inputModes_ids = db.fetch_all(AgentCardAndInputModes, {"agent_id": agent_index})
+            inputModes_ids = db.fetch_all(AgentCardAndInputMode, {"agent_id": agent_index})
             defaultInputModes = [
-                db.fetch_one(InputModes, {"id": inputModes_id}).name
+                db.fetch_one(InputMode, {"id": inputModes_id}).name
                 for inputModes_id in inputModes_ids
             ]
 
-            outputModes_ids = db.fetch_all(AgentCardAndOutputModes, {"agent_id": agent_index})
+            outputModes_ids = db.fetch_all(AgentCardAndOutputMode, {"agent_id": agent_index})
             defaultOutputModes = [
-                db.fetch_one(InputModes, {"id": outputModes_id}).name
+                db.fetch_one(InputMode, {"id": outputModes_id}).name
                 for outputModes_id in outputModes_ids
             ]
 

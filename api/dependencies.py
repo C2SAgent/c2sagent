@@ -1,6 +1,7 @@
 from fastapi import Depends
-from project.mcp_client.mcp_client_life import ChatSession
+from src_mcp.mcp_client.mcp_client import ChatSession
 from . import get_llm_client, get_mcp_servers
+from fastmcp import FastMCP
 
 async def get_chat_session() -> ChatSession:
     """获取聊天会话依赖项"""

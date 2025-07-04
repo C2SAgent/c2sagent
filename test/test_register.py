@@ -9,7 +9,7 @@ async def register_user():
         "Authorization": "Bearer your_token_here"  # 替换为实际token
     }
     data = {
-        "name": "test07",
+        "name": "test88",
         "password": "securepassword123",
         "core_llm_name": "default",
         "core_llm_url": "http://example.com",

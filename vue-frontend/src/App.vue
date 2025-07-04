@@ -1,21 +1,18 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '@/stores/auth'
+import { onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-const authStore = useAuthStore();
-authStore.init();
+const authStore = useAuthStore()
+const route = useRoute()
+
+// 仅初始化store，不控制渲染逻辑
+onMounted(() => {
+  authStore.init().catch(err => console.error('初始化失败:', err))
+})
 </script>
 
 <template>
-  <RouterView />
+  <!-- 直接渲染路由视图，不添加额外条件 -->
+  <router-view />
 </template>
-
-<style>
-/* 全局样式 */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  line-height: 1.6;
-}
-</style>

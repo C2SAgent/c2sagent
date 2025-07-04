@@ -3,7 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from typing import Annotated
 from model import model_agent as models
-from . import schemas, auth
+from model.api_model import model_auth
+from . import auth
 from .database import engine, get_db
 from .config import settings
 from sqlalchemy.orm import Session
@@ -13,7 +14,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-@app.post("/token", response_model=schemas.Token)
+@app.post("/token", response_model=model_auth.Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
@@ -40,7 +41,7 @@ async def login_for_access_token(
         "token_type": "bearer",
     }
 
-@app.post("/refresh-token", response_model=schemas.Token)
+@app.post("/refresh-token", response_model=model_auth.Token)
 async def refresh_access_token(
     refresh_token: str,
     db: Session = Depends(get_db)
@@ -72,15 +73,16 @@ async def refresh_access_token(
             detail="Invalid refresh token"
         )
 
-@app.get("/users/me", response_model=schemas.UserInDB)
+@app.get("/users/me", response_model=model_auth.UserInDB)
 async def read_users_me(
     current_user: Annotated[models.UserConfig, Depends(auth.get_current_active_user)]
 ):
     return current_user
 
-@app.post("/register", response_model=schemas.UserInDB)
+
+@app.post("/register", response_model=model_auth.UserInDB)
 async def register_user(
-    user: schemas.UserCreate,
+    user: model_auth.UserCreate,
     db: Session = Depends(get_db)
 ):
     db_user = db.query(models.UserConfig).filter(models.UserConfig.name == user.name).first()
