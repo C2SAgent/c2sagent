@@ -1,20 +1,29 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Body, FastAPI, Path, Request
+from fastapi.responses import JSONResponse
 from api.utils.api_utils import BaseResponse
+from src_mcp.mcp_client import lifespan
 from src_mcp.mcp_client.mcp_client import ChatSession
 import logging
-from ...dependencies import chat_session_depends
+from src_mcp.mcp_client.dependencies import chat_session_depends
 
-chat_router = APIRouter(prefix="/mcp_client")
+app = FastAPI()
 
-@chat_router.post(
-    "/{mcp_server_id}/{agent_id}", summary="与mcp agent进行对话"
+@app.post(
+    "/chat", summary="与mcp agent进行对话",
+    response_model=BaseResponse,
+    response_class=JSONResponse  # 确保返回JSON格式
 )
 async def answer_with_server_code(
     request: Request,
+    query: str = Body(...),
+    mcp_server_id: int = Body(..., description="MCP服务器ID"),
+    agent_id: int = Body(..., description="Agent ID"),
     chat_session: ChatSession = chat_session_depends,
 ):
-    request_data = await request.json()
-    query = request_data.get('query')
+    print("=============================================answer_with_server_code")
+    print(mcp_server_id)
+    # request_data = await request.json()
+    # query = request_data.get('query')
     print(query)
     try:
         messages = [{"role": "user", "content": query}]

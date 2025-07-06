@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from api.apps.auths.endpoints import app as auth_app
-from api.apps.agent.manager_agent_card import app as agent_app
-from api.apps.agent.manager_mcp_server import app as mcp_app
+from api.apps.agent.manager_agent_card import app as manager_agent
+from api.apps.agent.manager_mcp_server import app as manager_mcp
+from api.apps.agent.app_a2a_client import app as a2a_app
+from api.apps.agent.app_mcp_client import app as mcp_app
 from fastapi.middleware.cors import CORSMiddleware
 
+from src_mcp.mcp_client import lifespan
+
 # 创建主应用
-app = FastAPI(title="C2SAgent")
+app = FastAPI(title="C2SAgent", lifespan=lifespan)
 
 # 添加CORS中间件
 app.add_middleware(
@@ -18,8 +22,10 @@ app.add_middleware(
 
 # 挂载认证子应用
 app.mount("/auth", auth_app)
-app.mount("/agent", agent_app)
-app.mount("/mcp", mcp_app)
+app.mount("/agent", manager_agent)
+app.mount("/mcp", manager_mcp)
+app.mount("/chat", a2a_app)
+app.mount("/mcp_client", mcp_app)
 
 if __name__ == "__main__":
     import uvicorn

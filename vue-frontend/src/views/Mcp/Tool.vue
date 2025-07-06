@@ -25,7 +25,7 @@ import { useRoute } from 'vue-router'
 import { McpApi } from '@/api/mcp'
 
 const route = useRoute()
-const mcpId = route.params.id as string
+const mcpId = route.params.id
 
 const newToolJson = ref('')
 const tools = ref<any[]>([])
@@ -45,18 +45,19 @@ const isValidJson = computed(() => {
 
 // 加载工具列表
 const loadTools = async () => {
-  const res = await McpApi.listTools(mcpId)
+  const res = await McpApi.listTools(Number(mcpId))
   tools.value = res
+  console.log(res)
 }
 
 // 添加工具
 const addTool = async () => {
   try {
-    await McpApi.correlateTool(mcpId, newToolJson.value)
+    await McpApi.correlateTool(Number(mcpId), newToolJson.value)
     newToolJson.value = ''
     await loadTools()
   } catch (error) {
-    alert('添加失败: ' + error.message)
+    alert('添加失败: ' + error)
   }
 }
 

@@ -31,7 +31,7 @@ export interface TokenPayload {
 
 
 export interface AgentCard {
-  id: number
+  id?: number
   name: string
   description?: string
   llm_name: string
@@ -43,12 +43,12 @@ export interface AgentCard {
 }
 
 export interface McpServer {
-  id?: string
+  id?: number
   name: string
 }
 
 export interface Tool {
-  id: string
+  id?: string
   name: string
   url: string
 }

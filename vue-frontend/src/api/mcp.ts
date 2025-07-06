@@ -1,36 +1,36 @@
 import axios from 'axios'
 import type { McpServer, Tool } from '@/types'
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
-})
+import api from './index';
+// const api = axios.create({
+//   baseURL: import.meta.env.VITE_API_URL
+// })
 
 export const McpApi = {
   // 创建MCP服务
-  create(mcp: Omit<McpServer, 'id'>) {
-    return api.post('/mcp/create', mcp)
+  async create(name: string) {
+    console.log(name)
+    return await api.post('/mcp/create', name)
   },
   
   // 获取MCP列表
-  list() {
-    return api.get('/mcp/list')
+  async list() {
+    return await api.get('/mcp/list')
   },
   
   // 关联工具 (直接接受JSON字符串)
-  correlateTool(mcpId: string, toolJson: string) {
-    return api.post('/mcp/corr_tool', {
-      mcp_server: { id: mcpId },
+  async correlateTool(mcpId: number, toolJson: string) {
+    let body = {
+      mcp_server_id: mcpId,
       tool: JSON.parse(toolJson) // 确保是有效的JSON
-    })
+    }
+    console.log(body)
+    return await api.post('/mcp/corr_tool', body)
   },
   
   // 获取工具列表 (返回原始JSON)
-  listTools(mcpId: string) {
-    return api.post('/mcp/tool/list', {
-      mcp_server: { id: mcpId }
-    }).then(res => {
-      // 直接返回原始数据，不解析
-      return res.data.data 
-    })
-  }
+  async listTools(mcpId: number) {
+    return await api.get('/mcp/tool/list', {
+        params: { mcp_server_id: mcpId }  // ✅ 标准 GET 传参方式
+    }).then(res => res.data.data)
+}
 }

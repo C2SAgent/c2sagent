@@ -7,8 +7,7 @@ from typing import Literal
 
 from jinja2 import Template
 
-from constant import GOOGLE_API_KEY
-from mcp_manager import call_mcp_client
+from src_a2a.a2a_server.mcp_manager import call_mcp_client
 
 dir_path = Path(__file__).parent
 
@@ -30,10 +29,14 @@ class Agent:
         mode: Literal['complete', 'stream'] = 'stream',
         token_stream_callback: Callable[[str], None] | None = None,
         mcp_url: str | None = None,
+        agent_index: int | None = None,
+        mcp_server_id: int | None = None,
     ):
         self.mode = mode
         self.token_stream_callback = token_stream_callback
         self.mcp_url = mcp_url
+        self.agent_index = agent_index
+        self.mcp_server_id = mcp_server_id
 
     async def decide(
         self, question: str, called_tools: list[dict] | None = None
@@ -44,7 +47,9 @@ class Agent:
             question (str): The question to answer.
             called_tools (list[dict]): The tools that have been called.
         """
-        result = await call_mcp_client(self.mcp_url, query=question)
+        print("=================================================decide")
+        print(question)
+        result = await call_mcp_client(self.mcp_url, query=question, agent_index=self.agent_index, mcp_server_id=self.mcp_server_id)
         return result
 
     async def stream(self, question: str) -> AsyncGenerator[str]:

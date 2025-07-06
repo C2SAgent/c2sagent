@@ -8,7 +8,6 @@ import api from './index';
 export const AgentApi = {
   // 创建智能体
   async create(agent: AgentCard) {
-    console.log(agent)
     return await api.post('/agent/create', agent)
   },
   
@@ -19,8 +18,7 @@ export const AgentApi = {
   
   // 删除智能体
   async delete(id: number) {
-    console.log("Sending:", { "id": id }); // 确保是 `{ id: number }` 格式
-    return await api.post('/agent/delete',  id );
+    return await api.post('/agent/delete',  id);
   },
   
   // 关联MCP服务

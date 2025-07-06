@@ -9,23 +9,28 @@ from a2a.types import (
 from a2a.utils import new_agent_text_message, new_task, new_text_artifact
 from typing import Optional, override
 
-from agent import Agent
+from src_a2a.a2a_server.agent import Agent
 from core.db.base import DatabaseManager
 from model.model_agent import AgentCard, AgentCardAndMcpServer
 
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
-class LifeAgentExecutor(AgentExecutor):
+class CoreAgentExecutor(AgentExecutor):
     """Test AgentProxy Implementation."""
 
-    def __init__(self, agent_index: Optional[str] = None):
+    def __init__(self, agent_index: int = None):
         self.agent_index = agent_index
-        self.agent_find = db.fetch_one(AgentCard, {"name": "AI Assistant"})
-        self.mcp_server_id = db.fetch_one(AgentCardAndMcpServer, {"agent_card_id": self.agent_find.id}).mcp_server_id
+        print("============================================")
+        print(self.agent_index)
+        self.agent_find = db.fetch_one(AgentCard, id=self.agent_index)
+
+        self.mcp_server_id = db.fetch_one(AgentCardAndMcpServer, agent_card_id=agent_index).mcp_server_id
         self.agent = Agent(
-            mode=self.agent_find.mode,
+            mode="complete",
             token_stream_callback=print,
-            mcp_url=f'http://localhost:8000/mcp_client/{self.mcp_server_id}/{self.agent_find.id}',
+            mcp_url=f'http://localhost:8000/mcp_client/chat',
+            agent_index=self.agent_index,
+            mcp_server_id=self.mcp_server_id
         )
 
     @override
@@ -35,6 +40,8 @@ class LifeAgentExecutor(AgentExecutor):
         event_queue: EventQueue,
     ) -> None:
         query = context.get_user_input()
+        print("===========================================================query")
+        print(query)
         task = context.current_task
 
         if not context.message:
@@ -42,11 +49,11 @@ class LifeAgentExecutor(AgentExecutor):
 
         if not task:
             task = new_task(context.message)
-            event_queue.enqueue_event(task)
-
-
+            await event_queue.enqueue_event(task)
 
         event = await self.agent.stream(query)
+        print("===================================================")
+        print(event)
         event_queue.enqueue_event(
             TaskStatusUpdateEvent(
                 append=True,

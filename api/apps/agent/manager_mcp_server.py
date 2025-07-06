@@ -1,5 +1,6 @@
-from typing import Annotated
-from fastapi import FastAPI, Depends, HTTPException
+from typing import Annotated, Any, Dict
+from fastapi import Body, FastAPI, Depends, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
 from api.apps.auths import auth
 from api.apps.auths.dependencies import token_required
 from api.utils.api_utils import BaseResponse, ListResponse
@@ -18,46 +19,51 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 @app.post("/create", response_model=BaseResponse)
-@token_required
 async def do_mcp_create(
-    mcp_server: model_create_mcp.McpServer,
-):
-    current_user: Annotated[models.UserConfig, Depends(auth.get_current_active_user)]
-    
+    request: Request,
+    name: str = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+): 
     db.insert(models.McpServer, {
-        "name": mcp_server.name,
+        "name": name,
+        "url": "",
         "user_id": current_user.id
     })
 
     return BaseResponse()
 
-@app.post("/list", response_model=ListResponse)
-@token_required
-async def do_mcp_list():
-    current_user: Annotated[models.UserConfig, Depends(auth.get_current_active_user)]
-    
+@app.get("/list", response_model=ListResponse)
+async def do_mcp_list(
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
     mcps = db.fetch_all(models.McpServer, {"user_id": current_user.id})
-    
-    return ListResponse(data=mcps)
+    return {"data": jsonable_encoder(mcps)}
+
 
 @app.post("/corr_tool", response_model=BaseResponse)
-@token_required
 async def do_mcp_corr_tool(
-    mcp_server: model_create_mcp.McpServer,
-    tool: Tool,
+    request = Request,
+    mcp_server_id: int = Body(...),
+    tool: Dict[str, Any] = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ):
+    print(tool)
     manager = EnhancedServerToolManager()
-    manager.add_tool_to_server(str(mcp_server.id), tool)
+    manager.add_tool_to_server(str(mcp_server_id), tool)
     
     return BaseResponse()
 
-@app.post("/tool/list", response_model=BaseResponse)
-@token_required
-async def do_tool_list(mcp_server: model_create_mcp.McpServer):
+@app.get("/tool/list", response_model=BaseResponse)
+async def do_tool_list(
+    request: Request,
+    mcp_server_id: int = Query(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    print(mcp_server_id)
     manager = EnhancedServerToolManager()
     tools = []
-    for tool in manager.get_tools_by_server(mcp_server.id):
+    for tool in manager.get_tools_by_server(str(mcp_server_id)):
+        print(tool)
         tools.append(tool)
-    
+    print(tools)
     return ListResponse(data=tools)
-

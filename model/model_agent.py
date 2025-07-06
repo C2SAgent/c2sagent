@@ -132,8 +132,8 @@ class McpServer(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    url = Column(String(255), nullable=False)
-    user_id = Column(Integer, ForeignKey('user_config.id'), nullable=False)
+    url = Column(String(255), nullable=True)
+    user_id = Column(Integer, ForeignKey('user_config.id'), nullable=True)
     
     # 关系定义
     agent_cards = relationship("AgentCardAndMcpServer", back_populates="mcp_server")

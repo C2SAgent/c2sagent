@@ -26,7 +26,12 @@ onMounted(() => {
           <router-link to="/agent/create" class="submenu-item">创建智能体</router-link>
           <router-link to="/agent/list" class="submenu-item">智能体列表</router-link>
         </div>
-        
+        <div class="menu-group">
+          <div class="menu-title">MCP管理</div>
+          <router-link to="/mcp/create" class="submenu-item">创建MCP</router-link>
+          <router-link to="/mcp/list" class="submenu-item">MCP列表</router-link>
+        </div>
+
         <router-link to="/logout" class="menu-item">退出登录</router-link>
       </nav>
     </aside>

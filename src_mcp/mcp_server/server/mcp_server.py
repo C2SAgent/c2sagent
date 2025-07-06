@@ -1,6 +1,7 @@
 import contextlib
 import logging
 from collections.abc import AsyncIterator
+from contextvars import ContextVar
 
 import click
 import mcp.types as types
@@ -13,7 +14,49 @@ from starlette.types import Receive, Scope, Send
 from src_mcp.mcp_server.manager_server_tool import EnhancedServerToolManager
 from src_mcp.mcp_server.manager_tool import call_api_tool
 
+from starlette.types import ASGIApp, Scope, Receive, Send
+
+class PostOnlyASGIApp:
+    """仅接受POST请求的ASGI包装器"""
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["method"] != "POST":
+            # 直接返回405错误
+            await send({
+                "type": "http.response.start",
+                "status": 405,
+                "headers": [(b"content-type", b"text/plain")],
+            })
+            await send({
+                "type": "http.response.body",
+                "body": b"Method Not Allowed",
+            })
+            return
+        await self.app(scope, receive, send)
+
+class PathNormalizerASGIApp:
+    """路径规范化处理器（去除末尾斜杠）"""
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        # 强制去除路径末尾斜杠
+        original_path = scope["path"]
+        normalized_path = original_path.rstrip("/") or "/"
+        
+        if original_path != normalized_path:
+            # 如果原始路径不规范，直接重写scope（避免重定向）
+            scope = scope.copy()
+            scope["path"] = normalized_path
+        
+        await self.app(scope, receive, send)
+        
 logger = logging.getLogger(__name__)
+
+# 创建上下文变量来存储当前请求的tool_group
+current_tool_group: ContextVar[str] = ContextVar("current_tool_group", default=None)
 
 @click.command()
 @click.option("--port", default=3000, help="Port to listen on for HTTP")
@@ -53,10 +96,14 @@ def main(
         except Exception as e:
             return [types.TextContent(type="text", text=f"Error calling tool {name}: {str(e)}")]
 
-    # We'll modify list_tools to accept an optional tool_group parameter
     @app.list_tools()
-    async def list_tools(tool_group: str | None = None) -> list[types.Tool]:
-        tool_definitions = EnhancedServerToolManager.get_tools_by_server(tool_group)
+    async def list_tools() -> list[types.Tool]:
+        # 从上下文变量中获取tool_group
+        tool_group = current_tool_group.get()
+        print("================================================tool_group")
+        print(tool_group)
+        enhancedServerToolManager = EnhancedServerToolManager()
+        tool_definitions = enhancedServerToolManager.get_tools_by_server(server_name=tool_group)
         return [
             types.Tool(
                 name=tool["name"],
@@ -81,9 +128,13 @@ def main(
         path_parts = scope["path"].strip("/").split("/")
         tool_group = path_parts[1] if len(path_parts) > 1 else None
         
-        # Store tool_group in the scope so session_manager can access it
-        scope["tool_group"] = tool_group
-        await session_manager.handle_request(scope, receive, send)
+        # 设置当前请求的tool_group到上下文变量中
+        token = current_tool_group.set(tool_group)
+        try:
+            await session_manager.handle_request(scope, receive, send)
+        finally:
+            # 清理上下文变量
+            current_tool_group.reset(token)
 
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
@@ -94,17 +145,16 @@ def main(
                 yield
             finally:
                 logger.info("Application shutting down...")
-
+    normalized_app = PathNormalizerASGIApp(handle_streamable_http)
+    post_only_app = PostOnlyASGIApp(normalized_app)
     # Create an ASGI application using the transport
     starlette_app = Starlette(
         debug=True,
         routes=[
-            Mount("/mcp", app=handle_streamable_http),
-            Route("/mcp/{tool_group:path}", app=handle_streamable_http),
+            Mount("/mcp", app=post_only_app),
         ],
         lifespan=lifespan,
     )
-
     import uvicorn
 
     uvicorn.run(starlette_app, host="127.0.0.1", port=port)

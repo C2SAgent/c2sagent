@@ -65,12 +65,14 @@ async def do_agent_delete(
 
 @app.post("/corr_mcp", response_model=BaseResponse)
 async def do_agent_corr_mcp(
-    agent_card: model_create_agent.AgentCard,
-    mcp_server: model_create_agent.McpServer,
+    request: Request,
+    agent_card_id: int = Body(...),
+    mcp_server_id: int = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ):
     db.insert(models.AgentCardAndMcpServer, {
-        "agent_card_id": agent_card.id,
-        "mcp_server_id": mcp_server.id
+        "agent_card_id": agent_card_id,
+        "mcp_server_id": mcp_server_id
     })
     return BaseResponse()
 

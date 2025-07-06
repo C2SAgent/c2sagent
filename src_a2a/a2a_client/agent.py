@@ -110,7 +110,7 @@ class Agent:
         Returns:
             str or Generator[str]: The LLM response as a string or generator, depending on mode.
         """  # noqa: E501
-        user_find = db.fetch_one(UserConfig, {"id": self.user_id})
+        user_find = db.fetch_one(UserConfig, id = self.user_id)
         core_llm_url = user_find.core_llm_url
         core_llm_key = user_find.core_llm_key
         llm_client = LLMClient(core_llm_url, core_llm_key)
@@ -171,7 +171,8 @@ class Agent:
         """
 
         # client = self.remote_agent_connections[agent_name]
-        
+        print("=============================================agent_card")
+        print(agent_card)
         async with httpx.AsyncClient(timeout=500) as httpx_client:
             client = A2AClient(httpx_client, agent_card=agent_card, url=agent_card.url)
             message_id = str(uuid.uuid4())

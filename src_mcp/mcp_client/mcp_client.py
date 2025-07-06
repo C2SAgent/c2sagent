@@ -53,10 +53,20 @@ class ChatSession:
                 if "tool" in tool_call and "arguments" in tool_call:
                     logging.info(f"Executing tool: {tool_call['tool']}")
                     logging.info(f"With arguments: {tool_call['arguments']}")
-                    server_table = None
-                    server_table["command"] = "url"
-                    server_table["url"] = f"http://localhost:3000/mcp/{mcp_server_id}"
-                    async with server_table as server:
+                    mcp_config = {
+                        "mcpServers":{
+                            f"{self.server_name}":{
+                                "command": "url",
+                                "url": f"http://localhost:3000/mcp/{mcp_server_id}"
+                            }
+                        }
+                    }
+                    mcp_servers = {
+                        server_name: parse_mcp_client(config)
+                        for server_name, config in mcp_config["mcpServers"].items()
+                    }
+
+                    async with mcp_servers[f"{self.server_name}"] as server:
                         tools = await server.list_tools()
                         if any(tool.name == tool_call["tool"] for tool in tools):
                             try:
@@ -106,19 +116,33 @@ class ChatSession:
 
     async def _get_agent_response(self, messages, mcp_server_id, agent_id):
         # for server_name in self.servers:
-        agent_find = db.fetch_one(AgentCard, {"id": agent_id})
+        agent_find = db.fetch_one(AgentCard, id= agent_id)
+        print("==================================================agent_find")
+        print(agent_find.llm_url)
+        print(agent_find.llm_key)
         self.llm_client.llm_url = agent_find.llm_url
         self.llm_client.api_key = agent_find.llm_key
+        print(self.llm_client.llm_url)
+        print(self.llm_client.api_key)
 
-        mcp_server_find = db.fetch_one(McpServer, {"id": mcp_server_id})
+        mcp_server_find = db.fetch_one(McpServer, id= mcp_server_id)
         self.server_name = mcp_server_find.name
 
-        server_table = None
-        server_table["command"] = "url"
-        server_table["url"] = f"http://localhost:3000/mcp/{mcp_server_id}"
+        mcp_config = {
+            "mcpServers":{
+                f"{self.server_name}":{
+                    "command": "url",
+                    "url": f"http://localhost:3000/mcp/{mcp_server_id}"
+                }
+            }
+        }
+        mcp_servers = {
+            server_name: parse_mcp_client(config)
+            for server_name, config in mcp_config["mcpServers"].items()
+        }
         tools_description = ""
 
-        async with server_table as server:
+        async with mcp_servers[f"{self.server_name}"] as server:
             tools = await server.list_tools()
             tools_description += f"Service name: {self.server_name}\n"
             tools_description += "\n".join(
@@ -158,14 +182,14 @@ class ChatSession:
             "Please use only the tools that are explicitly defined above."
         )
         messages = [{"role": "system", "content": system_message}]+messages
-        llm_response = await self.llm_client.get_response(messages)
+        llm_response = await self.llm_client.get_response(messages, self.llm_client.llm_url, self.llm_client.api_key)
         logging.info(f"\nAssistant: {llm_response}")
 
         result = await self.process_llm_response(llm_response, mcp_server_id)
         while result != llm_response:
             messages.append({"role": "assistant", "content": llm_response})
             messages.append({"role": "user", "content": result})
-            llm_response = await self.llm_client.get_response(messages)
+            llm_response = await self.llm_client.get_response(messages, self.llm_client.llm_url, self.llm_client.api_key)
             logging.info(f"\nAssistant: {llm_response}")
             result = await self.process_llm_response(llm_response, mcp_server_id)
         return result
