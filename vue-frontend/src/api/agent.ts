@@ -22,10 +22,26 @@ export const AgentApi = {
   },
   
   // 关联MCP服务
-  async correlateMcp(agentId: string, mcpId: string) {
+  async correlateMcp(agentId: number, mcpId: number) {
     return await api.post('/agent/corr_mcp', {
-      agent_card: { id: agentId },
-      mcp_server: { id: mcpId }
+      agent_card_id: agentId,
+      mcp_server_id: mcpId 
+    })
+  },
+
+  async findMcpByAgent(agentId: number) {
+    return await api.get('/agent/find_mcp', {
+      params:{
+        agent_card_id: agentId,
+      }
+    })
+  },
+
+  async askAgent(question: string){
+    return await api.get('/chat/ask-agent', {
+      params:{
+        question: question,
+      }
     })
   }
 }

@@ -58,7 +58,7 @@ async def stream_llm(prompt: str, llm_client) -> Generator[str]:
     """
     # llm_client = LLMClient(os.getenv("API_KEY"))
     messages = [{"role": "system", "content": prompt}]
-    response = await llm_client.get_response(messages)
+    response = await llm_client.get_response(messages, llm_client.llm_url, llm_client.api_key)
     return response
 
 
@@ -196,6 +196,8 @@ class Agent:
                 id=message_id, params=MessageSendParams.model_validate(payload)
             )
             send_response: SendMessageResponse = await client.send_message(message_request)
+            print("====================================================send_response")
+            print(send_response)
             
             return send_response.root.result.status.message.parts[0].root.text
 

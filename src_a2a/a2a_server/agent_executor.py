@@ -54,13 +54,13 @@ class CoreAgentExecutor(AgentExecutor):
         event = await self.agent.stream(query)
         print("===================================================")
         print(event)
-        event_queue.enqueue_event(
+        await event_queue.enqueue_event(
             TaskStatusUpdateEvent(
                 append=True,
                 status=TaskStatus(
                     state=TaskState.working,
                     message=new_agent_text_message(
-                        event["data"],
+                        event,
                         task.contextId,
                         task.id,
                     ),

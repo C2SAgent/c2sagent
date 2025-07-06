@@ -12,7 +12,7 @@ from starlette.routing import Mount, Route
 from starlette.types import Receive, Scope, Send
 
 from src_mcp.mcp_server.manager_server_tool import EnhancedServerToolManager
-from src_mcp.mcp_server.manager_tool import call_api_tool
+
 
 from starlette.types import ASGIApp, Scope, Receive, Send
 
@@ -89,7 +89,8 @@ def main(
         name: str, arguments: dict
     ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
         try:
-            result = await call_api_tool(name, arguments)
+            enhancedServerToolManager = EnhancedServerToolManager()
+            result = await enhancedServerToolManager.call_api_tool(name, arguments)
             return [types.TextContent(type="text", text=str(result))]
         except ValueError as e:
             return [types.TextContent(type="text", text=str(e))]

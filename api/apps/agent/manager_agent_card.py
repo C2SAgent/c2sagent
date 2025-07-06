@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Body, FastAPI, Depends, HTTPException, Request
+from fastapi import Body, FastAPI, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from api.apps.auths import auth
 from api.apps.auths.dependencies import token_required
@@ -76,3 +76,17 @@ async def do_agent_corr_mcp(
     })
     return BaseResponse()
 
+@app.get("/find_mcp", response_model=BaseResponse)
+async def do_find_mcp(
+    request: Request,
+    agent_card_id: int = Query(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    mcp_id = db.fetch_one(models.AgentCardAndMcpServer, 
+        agent_card_id = agent_card_id,
+    ).mcp_server_id
+    print("================================do_find_mcp")
+    print(mcp_id)
+    mcp = db.fetch_all(models.McpServer, {"id": mcp_id})[0]
+    
+    return {"data": jsonable_encoder(mcp)}

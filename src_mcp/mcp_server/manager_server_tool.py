@@ -1,3 +1,5 @@
+import aiohttp
+import httpx
 from tinydb import TinyDB, Query
 from typing import Dict, Any, List, Optional
 
@@ -117,6 +119,44 @@ class EnhancedServerToolManager:
             if (keyword_lower in tool['name'].lower() or 
                 keyword_lower in tool.get('description', '').lower())
         ]
+
+    async def call_api_tool(self, name: str, arguments: dict) -> str:
+        """调用API工具"""
+        data = self.search_tools_by_keyword(name)
+        if not data:
+            raise ValueError(f"Tool '{name}' not found")
+        
+        tool = dict(data[0])
+        handler = tool["handler"]
+        
+        try:
+            url = handler["url"]
+            method = handler["method"].upper()
+
+            if method == "GET":
+                request_params = {}
+                request_params["key"] = handler["key"]
+                request_params.update(arguments)
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, params=request_params) as response:
+                        return await response.json()
+            
+            if method == "POST":
+                request_params = {}
+                request_params["key"] = handler["key"]
+                request_params.update(arguments)
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, params=request_params) as response:
+                        return await response.json()
+                    
+
+            raise ValueError(f"Unsupported HTTP method: {method}")
+            
+        except httpx.HTTPStatusError as e:
+            raise ValueError(f"API request failed: {e.response.text}")
+        except Exception as e:
+            raise ValueError(f"Tool execution error: {str(e)}")
+
 
 # 使用示例
 if __name__ == "__main__":

@@ -37,6 +37,9 @@ async def do_mcp_list(
     current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ):
     mcps = db.fetch_all(models.McpServer, {"user_id": current_user.id})
+    print("==========================================do_mcp_list")
+    print(current_user.id)
+    print(mcps)
     return {"data": jsonable_encoder(mcps)}
 
 

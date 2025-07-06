@@ -17,17 +17,25 @@ async def call_mcp_client(
     """ 
     print("=======================================================url")
     print(url)
+    headers = {
+        "Content-Type": "application/json"
+    }
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 url,
+                headers=headers,
                 json={
                     "query": query,
-                    "agent_index": agent_index,
-                    "mcp_server_id": mcp_server_id
+                    "mcp_server_id": mcp_server_id,
+                    "agent_id": agent_index
                 },
             ) as response:
-                return await response.json()
+                print("=====================================response")
+                # print(response)
+                result = await response.json()
+                print(result)
+                return result["data"]
     except Exception as e:
         raise e
 

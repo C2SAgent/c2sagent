@@ -25,8 +25,8 @@ class AgentResponse(BaseModel):
 @app.get("/ask-agent", response_model=BaseResponse)
 async def ask_agent(
     request: Request,
-    question: str = Query(...)
-    # current_user: models.UserConfig = Depends(auth.get_current_active_user)
+    question: str = Query(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ):
     """Endpoint to interact with the Agent.
     
