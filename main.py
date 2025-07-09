@@ -1,15 +1,56 @@
+import os
 from fastapi import FastAPI
-from api.apps.auths.endpoints import app as auth_app
-from api.apps.agent.manager_agent_card import app as manager_agent
-from api.apps.agent.manager_mcp_server import app as manager_mcp
-from api.apps.agent.app_a2a_client import app as a2a_app
-from api.apps.agent.app_mcp_client import app as mcp_app
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from src_mcp.mcp_client import lifespan
 
+from api.apps.auths.endpoints import app as app_auth
+from api.apps.agent.manager_agent_card import app as manager_agent
+from api.apps.agent.manager_mcp_server import app as manager_mcp
+from api.apps.agent.app_a2a import app as app_a2a
+from api.apps.agent.app_mcp import app as app_mcp
+
+
+
+
 # 创建主应用
 app = FastAPI(title="C2SAgent", lifespan=lifespan)
+
+# 静态文件位置
+static_dir = os.path.dirname(os.path.abspath(__file__))
+app.mount("/static", StaticFiles(directory=f"{static_dir}/static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="/static/swagger-ui/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui/swagger-ui.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="/static/redoc/redoc.standalone.js",
+    )
+
 
 # 添加CORS中间件
 app.add_middleware(
@@ -21,11 +62,11 @@ app.add_middleware(
 )
 
 # 挂载认证子应用
-app.mount("/auth", auth_app)
-app.mount("/agent", manager_agent)
-app.mount("/mcp", manager_mcp)
-app.mount("/chat", a2a_app)
-app.mount("/mcp_client", mcp_app)
+app.mount("/app_auth", app_auth)
+app.mount("/manager_agent", manager_agent)
+app.mount("/manager_mcp", manager_mcp)
+app.mount("/app_a2a", app_a2a)
+app.mount("/app_mcp", app_mcp)
 
 if __name__ == "__main__":
     import uvicorn

@@ -9,12 +9,12 @@ export const McpApi = {
   // 创建MCP服务
   async create(name: string) {
     console.log(name)
-    return await api.post('/mcp/create', name)
+    return await api.post('/manager_mcp/create', name)
   },
   
   // 获取MCP列表
   async list() {
-    return await api.get('/mcp/list')
+    return await api.get('/manager_mcp/list')
   },
   
   // 关联工具 (直接接受JSON字符串)
@@ -24,12 +24,12 @@ export const McpApi = {
       tool: JSON.parse(toolJson) // 确保是有效的JSON
     }
     console.log(body)
-    return await api.post('/mcp/corr_tool', body)
+    return await api.post('/manager_mcp/corr_tool', body)
   },
   
   // 获取工具列表 (返回原始JSON)
   async listTools(mcpId: number) {
-    return await api.get('/mcp/tool/list', {
+    return await api.get('/manager_mcp/tool/list', {
         params: { mcp_server_id: mcpId }  // ✅ 标准 GET 传参方式
     }).then(res => res.data.data)
 }

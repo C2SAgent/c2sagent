@@ -22,12 +22,20 @@ class LLMClient:
         )
 
     async def get_stream_response(
-        self, messages: list[dict[str, str]]
+        self, messages: list[dict[str, str]], llm_url, api_key
     ) -> AsyncGenerator[str, None]:
+        self.llm_url = llm_url
+        self.api_key = api_key
+        print("=====================================================llm")
+        print(self.llm_url)
+        print(self.api_key)
+        self.client: AsyncOpenAI = AsyncOpenAI(
+            api_key=self.api_key, base_url=self.llm_url
+        )
         response = await self.client.chat.completions.create(
             messages=messages,
             stream=True,
-            model="deepseek-response",
+            model="deepseek-chat",
             temperature=1.3,
             max_tokens=8192,
         )
@@ -37,9 +45,6 @@ class LLMClient:
                 yield delta.content
 
     async def get_response(self, messages: list[dict[str, str]], llm_url, api_key) -> str:
-        print("=============================================================")
-        print(messages)
-        print("=============================================================")
         self.llm_url = llm_url
         self.api_key = api_key
         self.client: AsyncOpenAI = AsyncOpenAI(

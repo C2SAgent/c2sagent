@@ -4,7 +4,7 @@ import type { UserCreate, Token, LoginForm, User } from '@/types/auth';
 const AuthAPI = {
   async login(formData: LoginForm): Promise<Token> {
     console.log(formData);
-    const response = await api.post<Token>('/auth/token', new URLSearchParams({
+    const response = await api.post<Token>('/app_auth/token', new URLSearchParams({
       username: formData.username,
       password: formData.password,
       grant_type: 'password',
@@ -18,7 +18,7 @@ const AuthAPI = {
 
   async register(userData: UserCreate): Promise<User> {
     console.log(userData);
-    const response = await api.post<UserCreate>('/auth/register', userData);
+    const response = await api.post<UserCreate>('/app_auth/register', userData);
     return response.data;
   },
 
@@ -27,12 +27,12 @@ const AuthAPI = {
   },
 
   async refreshToken(refreshToken: string): Promise<Token> {
-    const response = await api.post<Token>('/auth/refresh-token', { refresh_token: refreshToken });
+    const response = await api.post<Token>('/app_auth/refresh-token', { refresh_token: refreshToken });
     return response.data;
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await api.get<User>('/auth/users/me');
+    const response = await api.get<User>('/app_auth/users/me');
     return response.data;
   },
 };

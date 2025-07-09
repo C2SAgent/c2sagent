@@ -195,14 +195,79 @@ class ChatSession:
         return result
 
     # TODO: 待完成流式agent接口
-    async def get_agent_response_stream(self, messages):
-        logging.info("\nAssistant:")
-        async for llm_response in self.llm_client.get_stream_response(messages):
+    async def get_agent_response_stream(self, messages, mcp_server_id, agent_id):
+        agent_find = db.fetch_one(AgentCard, id= agent_id)
+        print("==================================================agent_find")
+        print(agent_find.llm_url)
+        print(agent_find.llm_key)
+        self.llm_client.llm_url = agent_find.llm_url
+        self.llm_client.api_key = agent_find.llm_key
+        print(self.llm_client.llm_url)
+        print(self.llm_client.api_key)
+
+        mcp_server_find = db.fetch_one(McpServer, id= mcp_server_id)
+        self.server_name = mcp_server_find.name
+
+        mcp_config = {
+            "mcpServers":{
+                f"{self.server_name}":{
+                    "command": "url",
+                    "url": f"http://localhost:3000/mcp/{mcp_server_id}"
+                }
+            }
+        }
+        mcp_servers = {
+            server_name: parse_mcp_client(config)
+            for server_name, config in mcp_config["mcpServers"].items()
+        }
+        tools_description = ""
+
+        async with mcp_servers[f"{self.server_name}"] as server:
+            tools = await server.list_tools()
+            tools_description += f"Service name: {self.server_name}\n"
+            tools_description += "\n".join(
+                [self.format_for_llm(tool) for tool in tools]
+            )
+
+        system_message = (
+            "You are a helpful assistant  have access to these services and the tools they offer:\n\n"
+            # 工具描述prompt
+            f"{tools_description}\n"
+            "Choose the appropriate tool based on the user's question. "
+            "If no tool is needed, reply directly.\n\n"
+            "IMPORTANT: When you need to use a tool, you must ONLY respond with "
+            "the exact JSON list object format below, nothing else:\n"
+            "[{\n"
+            '    "tool": "tool-name-1",\n'
+            '    "arguments": {\n'
+            '        "argument-name": "value"\n'
+            "    }\n"
+            "},\n"
+            "{\n"
+            '    "tool": "tool-name-2",\n'
+            '    "arguments": {\n'
+            '        "argument-name": "value"\n'
+            "    }\n"
+            "},]\n\n"
+            "When using the tool, user will return the result, so please be careful to distinguish it.\n"
+            # 时间处理prompt
+            f"When the user does not provide a specific date, the system uses {datetime.date.today()} as the baseline to coumpute the target date based on the user's intent"
+            "The dates/times you provide should must match the user's input exactly, be factually accurate, and must not fabricate false dates."
+            "After receiving a tool's response:\n"
+            "1. Transform the raw data into a natural, conversational response\n"
+            "2. Keep responses concise but informative\n"
+            "3. Focus on the most relevant information\n"
+            "4. Use appropriate context from the user's question\n"
+            "5. Avoid simply repeating the raw data\n\n"
+            "Please use only the tools that are explicitly defined above."
+        )
+        messages = [{"role": "system", "content": system_message}]+messages
+        async for llm_response in self.llm_client.get_stream_response(messages, mcp_server_id=mcp_server_id):
             result = await self.process_llm_response(llm_response)
             while result != llm_response:
                 messages.append({"role": "assistant", "content": llm_response})
                 messages.append({"role": "user", "content": result})
-                async for llm_response in self.llm_client.get_stream_response(messages):
+                async for llm_response in self.llm_client.get_stream_response(messages, mcp_server_id=mcp_server_id):
                     logging.info(f"\nAssistant: {llm_response}")
                     result = await self.process_llm_response(llm_response)
             return result

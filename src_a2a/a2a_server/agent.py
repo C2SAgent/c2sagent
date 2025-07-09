@@ -7,7 +7,7 @@ from typing import Literal
 
 from jinja2 import Template
 
-from src_a2a.a2a_server.mcp_manager import call_mcp_client
+from src_a2a.a2a_server.mcp_manager import call_mcp_client, call_mcp_client_streaming
 
 dir_path = Path(__file__).parent
 
@@ -47,12 +47,11 @@ class Agent:
             question (str): The question to answer.
             called_tools (list[dict]): The tools that have been called.
         """
-        print("=================================================decide")
-        print(question)
+        
         result = await call_mcp_client(self.mcp_url, query=question, agent_index=self.agent_index, mcp_server_id=self.mcp_server_id)
         return result
 
-    async def stream(self, question: str) -> AsyncGenerator[str]:
+    async def completion(self, question: str) -> AsyncGenerator[str]:
         """Stream the process of answering a question, possibly involving tool calls.
 
         Args:
@@ -65,17 +64,30 @@ class Agent:
         response = await self.decide(question)
 
         return response
+    
+    async def decide_streaming(
+        self, question: str, called_tools: list[dict] | None = None
+    ) -> AsyncGenerator[str, None]:
+        """Decide which tool to use to answer the question.
 
+        Args:
+            question (str): The question to answer.
+            called_tools (list[dict]): The tools that have been called.
+        """
+        async for chunk in call_mcp_client_streaming(self.mcp_url, query=question, agent_index=self.agent_index, mcp_server_id=self.mcp_server_id):
+            yield chunk
 
-# if __name__ == '__main__':
-#     agent = Agent(
-#         token_stream_callback=lambda token: print(token, end='', flush=True),
-#         mcp_url='http://localhost:8000/chat/chat_with_mcp',
-#     )
+    async def stream(self, question: str) -> AsyncGenerator[str]:
+        """Stream the process of answering a question, possibly involving tool calls.
 
-#     async def main():
-#         """Main function."""
-#         async for chunk in agent.stream('What is A2A Protocol?'):
-#             print(chunk)
+        Args:
+            question (str): The question to answer.
 
-#     asyncio.run(main())
+        Yields:
+            dict: Streaming output, including intermediate steps and final result.
+            
+        """  # noqa: E501
+
+        async for chunk in await self.decide_streaming(question):
+            yield chunk
+                

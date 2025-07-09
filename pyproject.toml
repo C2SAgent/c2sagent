@@ -5,6 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "pymongo>=4.13.2",
+]
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+dependencies = [
     "annotated-types==0.7.0",
     "anyio==4.9.0",
     "certifi==2025.4.26",
@@ -53,4 +59,5 @@ dependencies = [
     "asyncclick>=8.1.8",
     "a2a-sdk>=0.2.10",
     "jinja2>=3.1.6",
+    "pymongo>=4.13.2",
 ]

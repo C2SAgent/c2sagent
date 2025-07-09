@@ -47,7 +47,7 @@ with Path(dir_path / 'agent_answer.jinja').open('r') as f:
     agent_answer_template = Template(f.read())
 
 
-async def stream_llm(prompt: str, llm_client) -> Generator[str]:
+async def completion_llm(prompt: str, llm_client: LLMClient) -> Generator[str]:
     """Stream LLM response.
 
     Args:
@@ -61,6 +61,19 @@ async def stream_llm(prompt: str, llm_client) -> Generator[str]:
     response = await llm_client.get_response(messages, llm_client.llm_url, llm_client.api_key)
     return response
 
+def stream_llm(prompt: str, llm_client: LLMClient) -> Generator[str]:
+    """Stream LLM response.
+
+    Args:
+        prompt (str): The prompt to send to the LLM.
+
+    Returns:
+        Generator[str, None, None]: A generator of the LLM response.
+    """
+    # client = genai.Client(api_key=GOOGLE_API_KEY)
+    messages = [{"role": "system", "content": prompt}]
+    for chunk in llm_client.get_stream_response(messages, llm_client.llm_url, llm_client.api_key):
+        yield chunk
 
 class Agent:
     """Agent for interacting with the Google Gemini LLM in different modes."""
@@ -114,7 +127,7 @@ class Agent:
         core_llm_url = user_find.core_llm_url
         core_llm_key = user_find.core_llm_key
         llm_client = LLMClient(core_llm_url, core_llm_key)
-        return await stream_llm(prompt, llm_client)
+        return await completion_llm(prompt, llm_client)
 
     async def decide(
         self,
@@ -204,7 +217,7 @@ class Agent:
             # return send_response
 
 
-    async def stream(self, question: str):
+    async def completion(self, question: str):
         """Stream the process of answering a question, possibly involving multiple agents.
 
         Args:
@@ -227,11 +240,6 @@ class Agent:
                 agent_response = await self.send_message_to_an_agent(
                     agent_card, agent['prompt']
                 )
-                print(agent_response)
-                # match = re.search(
-                #     r'<Answer>(.*?)</Answer>', agent_response, re.DOTALL
-                # )
-                # answer = match.group(1).strip() if match else agent_response
                 agent_answers.append(
                     {
                         'name': agent['name'],
@@ -242,4 +250,133 @@ class Agent:
             return agent_answers
         else:
             return
+        
+    def call_llm_streaming(self, prompt: str) -> str:
+        """Call the LLM with the given prompt and return the response as a string or generator.
 
+        Args:
+            prompt (str): The prompt to send to the LLM.
+
+        Returns:
+            str or Generator[str]: The LLM response as a string or generator, depending on mode.
+        """  # noqa: E501
+        if self.mode == 'complete':
+            return stream_llm(prompt)
+
+        result = ''
+        for chunk in stream_llm(prompt):
+            result += chunk
+        return result
+
+    async def decide_streaming(
+        self,
+        question: str,
+        agents_prompt: str,
+        called_agents: list[dict] | None = None,
+    ) -> Generator[str, None]:
+        """Decide which agent(s) to use to answer the question.
+
+        Args:
+            question (str): The question to answer.
+            agents_prompt (str): The prompt describing available agents.
+            called_agents (list[dict] | None): Previously called agents and their answers.
+
+        Returns:
+            Generator[str, None]: The LLM's response as a generator of strings.
+        """  # noqa: E501
+        if called_agents:
+            call_agent_prompt = agent_answer_template.render(
+                called_agents=called_agents
+            )
+        else:
+            call_agent_prompt = ''
+        prompt = decide_template.render(
+            question=question,
+            agent_prompt=agents_prompt,
+            call_agent_prompt=call_agent_prompt,
+        )
+        return self.call_llm_streaming(prompt)
+
+    async def send_message_to_an_agent_streaming(
+        self, agent_card: AgentCard, message: str
+    ):
+        """Send a message to a specific agent and yield the streaming response.
+
+        Args:
+            agent_card (AgentCard): The agent to send the message to.
+            message (str): The message to send.
+
+        Yields:
+            str: The streaming response from the agent.
+        """
+        async with httpx.AsyncClient() as httpx_client:
+            client = A2AClient(httpx_client, agent_card=agent_card)
+            message = MessageSendParams(
+                message=Message(
+                    role=Role.user,
+                    parts=[Part(TextPart(text=message))],
+                    messageId=uuid4().hex,
+                    taskId=uuid4().hex,
+                )
+            )
+
+            streaming_request = SendStreamingMessageRequest(
+                id=str(uuid4().hex), params=message
+            )
+            async for chunk in client.send_message_streaming(streaming_request):
+                if isinstance(
+                    chunk.root, SendStreamingMessageSuccessResponse
+                ) and isinstance(chunk.root.result, TaskStatusUpdateEvent):
+                    message = chunk.root.result.status.message
+                    if message:
+                        yield message.parts[0].root.text
+
+
+    async def stream(self, question: str):
+        """Stream the process of answering a question, possibly involving multiple agents.
+
+        Args:
+            question (str): The question to answer.
+
+        Yields:
+            str: Streaming output, including agent responses and intermediate steps.
+        """  # noqa: E501
+        agent_answers: list[dict] = []
+        for _ in range(3):
+            agents_registry, agent_prompt = await self.get_agents()
+            response = ''
+            for chunk in await self.decide_streaming(
+                question, agent_prompt, agent_answers
+            ):
+                response += chunk
+                if self.token_stream_callback:
+                    self.token_stream_callback(chunk)
+                yield chunk
+
+            agents = self.extract_agents(response)
+            if agents:
+                for agent in agents:
+                    agent_response = ''
+                    agent_card = agents_registry[agent['name']]
+                    yield f'<Agent name="{agent["name"]}">\n'
+                    async for chunk in self.send_message_to_an_agent_streaming(
+                        agent_card, agent['prompt']
+                    ):
+                        agent_response += chunk
+                        if self.token_stream_callback:
+                            self.token_stream_callback(chunk)
+                        yield chunk
+                    yield '</Agent>\n'
+                    match = re.search(
+                        r'<Answer>(.*?)</Answer>', agent_response, re.DOTALL
+                    )
+                    answer = match.group(1).strip() if match else agent_response
+                    agent_answers.append(
+                        {
+                            'name': agent['name'],
+                            'prompt': agent['prompt'],
+                            'answer': answer,
+                        }
+                    )
+            else:
+                return

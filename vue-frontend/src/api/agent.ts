@@ -8,29 +8,29 @@ import api from './index';
 export const AgentApi = {
   // 创建智能体
   async create(agent: AgentCard) {
-    return await api.post('/agent/create', agent)
+    return await api.post('/manager_agent/create', agent)
   },
   
   // 获取智能体列表
   async list() {
-    return await api.get('/agent/list')
+    return await api.get('/manager_agent/list')
   },
   
   // 删除智能体
   async delete(id: number) {
-    return await api.post('/agent/delete',  id);
+    return await api.post('/manager_agent/delete',  id);
   },
   
   // 关联MCP服务
   async correlateMcp(agentId: number, mcpId: number) {
-    return await api.post('/agent/corr_mcp', {
+    return await api.post('/manager_agent/corr_mcp', {
       agent_card_id: agentId,
       mcp_server_id: mcpId 
     })
   },
 
   async findMcpByAgent(agentId: number) {
-    return await api.get('/agent/find_mcp', {
+    return await api.get('/manager_agent/find_mcp', {
       params:{
         agent_card_id: agentId,
       }
@@ -38,7 +38,7 @@ export const AgentApi = {
   },
 
   async askAgent(question: string){
-    return await api.get('/chat/ask-agent', {
+    return await api.get('/app_a2a/ask_a2a', {
       params:{
         question: question,
       }
