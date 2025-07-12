@@ -47,7 +47,7 @@ async def ask_agent(
         question_msg = {
             "role": "user",
             "content": question,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now().isoformat()
         }
         if session_id == '':
             session_id = mongo.create_session(str(current_user.id), question_msg)
@@ -74,17 +74,17 @@ async def ask_agent(
         result = await agent.completion(messages)
         message_result = {
             "role": "system",
-            "content": result,
-            "timestamp": datetime.now()
+            "content": result[0]["answer"],
+            "timestamp": datetime.now().isoformat()
         }
         mongo.add_message(session_id, message_result)
     finally:
         mongo.close()
 
-    return BaseResponse(data=result)
+    return BaseResponse(data=result[0]["answer"])
 
 @app.get("/ask_a2a_streaming", response_model=BaseResponse)
-async def ask_agent(
+async def ask_agent_streaming(
     request: Request,
     question: str = Query(...),
     current_user: models.UserConfig = Depends(auth.get_current_active_user)

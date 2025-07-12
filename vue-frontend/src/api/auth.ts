@@ -1,3 +1,4 @@
+import axios from 'axios'
 import api from './index';
 import type { UserCreate, Token, LoginForm, User } from '@/types/auth';
 

@@ -37,8 +37,9 @@ class MongoDBManager:
         session_data = {
             "session_id": f"sess_{datetime.now().timestamp()}",
             "user_id": user_id,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now(),
+            "title": initial_message["content"],
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
             "messages": [initial_message]
         }
         
@@ -55,7 +56,7 @@ class MongoDBManager:
         try:
             sessions = self.collection.find(
                 {"user_id": user_id},
-                {"_id": 0, "session_id": 1, "created_at": 1, "messages": {"$slice": 1}}  # 只返回第一条消息摘要
+                {"_id": 0, "session_id": 1, "title": 1, "created_at": 1, "messages": {"$slice": 1}}  # 只返回第一条消息摘要
             ).sort("updated_at", -1).limit(limit)
             
             return list(sessions)
@@ -112,30 +113,33 @@ if __name__ == "__main__":
         mongo.connect()
         
         # 创建测试会话
-        test_msg = {
-            "role": "user",
-            "content": "Hello MongoDB!",
-            "timestamp": datetime.now()
-        }
-        session_id = mongo.create_session("36", test_msg)
-        
-        # 查询会话
-        sessions = mongo.get_session_by_ids("36", session_id)
-        print(sessions)
-        # print(f"Found {len(sessions)} sessions:")
-        # for sess in sessions:
-        #     print(f" - {sess['session_id']} (Created at: {sess['created_at']})")
-        
-        # # 添加新消息
-        # new_msg = {
-        #     "role": "assistant",
-        #     "content": "Hi there! How can I help?",
-        #     "timestamp": datetime.now()
+        # test_msg = {
+        #     "role": "user",
+        #     "content": "Hello MongoMongo!",
+        #     "timestamp": datetime.now().isoformat()
         # }
-        # mongo.add_message(session_id, new_msg)
+        # session_id = mongo.create_session("36", test_msg)
         
-        # 删除会话（取消注释执行）
-        # mongo.delete_session(session_id)
+        # # 查询会话
+        sessions = mongo.get_session_by_ids("36", "sess_1752316085.011195")
+        print(sessions)
+        # # print(f"Found {len(sessions)} sessions:")
+        # # for sess in sessions:
+        # #     print(f" - {sess['session_id']} (Created at: {sess['created_at']})")
+        
+        # # # 添加新消息
+        # # new_msg = {
+        # #     "role": "assistant",
+        # #     "content": "Hi there! How can I help?",
+        # #     "timestamp": datetime.now()
+        # # }
+        # # mongo.add_message("sess_1752078184.370969", new_msg)
+        
+        # for session in sessions:
+        #     mongo.delete_session(session["session_id"])
+            
+        # sessions = mongo.get_sessions("36")
+        # print(sessions)
         
     finally:
         mongo.close()

@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from fastapi import Body, FastAPI, HTTPException, Query, Request, Depends
 from pydantic import BaseModel
@@ -10,14 +11,14 @@ from core.db.base import DatabaseManager
 from model.model_agent import AgentCard
 from model import model_agent as models
 from fastapi.responses import StreamingResponse
+from core.db.base_mongo import MongoDBManager
 
 app = FastAPI()
 db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
 
-@app.post("/history_message", response_model=ListResponse)
-async def ask_agent(
+@app.get("/list", response_model=ListResponse)
+async def do_list_session(
     request: Request,
-    id: int = Body(..., "历史消息id"),
     current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ):
     """Endpoint to interact with the Agent.
@@ -28,5 +29,58 @@ async def ask_agent(
     Returns:
         AgentResponse: The response from the agent.
     """
-    
-    
+    mongo = MongoDBManager()
+    try:
+        mongo.connect()
+        sessions = mongo.get_sessions(user_id=str(current_user.id))
+    finally:
+        mongo.close()
+    return ListResponse(data=sessions)
+
+@app.get("/load", response_model=BaseResponse)
+async def do_load_session(
+    request: Request,
+    session_id: str = Query(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    mongo = MongoDBManager()
+    try:
+        mongo.connect()
+        session = mongo.get_session_by_ids(user_id=str(current_user.id), session_id=session_id)
+    finally:
+        mongo.close()
+    print(session)
+    return BaseResponse(data=session)
+
+@app.post("/create", response_model=BaseResponse)
+async def do_create_session(
+    request: Request,
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    mongo = MongoDBManager()
+    try:
+        mongo.connect()
+        question_msg = {
+            "role": "system",
+            "content": "您好，我们是一个智能团队，叫小C，有什么安排的都可以向我提呦~~~",
+            "timestamp": datetime.now().isoformat()
+        }
+        session_id = mongo.create_session(str(current_user.id), question_msg)
+        result = mongo.get_session_by_ids(str(current_user.id), session_id)
+    finally:
+        mongo.close()
+    return BaseResponse(data=result)
+
+@app.post("/delete", response_model=BaseResponse)
+async def do_delete_session(
+    request: Request,
+    session_id: str = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    mongo = MongoDBManager()
+    try:
+        mongo.connect()
+        result = mongo.delete_session(session_id)
+    finally:
+        mongo.close()
+    return BaseResponse(data=result)

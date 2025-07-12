@@ -15,8 +15,10 @@ from api.apps.agent.manager_agent_card import app as manager_agent
 from api.apps.agent.manager_mcp_server import app as manager_mcp
 from api.apps.agent.app_a2a import app as app_a2a
 from api.apps.agent.app_mcp import app as app_mcp
+from api.apps.agent.app_history import app as app_history
 
-
+from src_a2a.a2a_server import main as main_a2a
+from src_mcp.mcp_server.server.mcp_server import main as main_mcp
 
 
 # 创建主应用
@@ -67,6 +69,7 @@ app.mount("/manager_agent", manager_agent)
 app.mount("/manager_mcp", manager_mcp)
 app.mount("/app_a2a", app_a2a)
 app.mount("/app_mcp", app_mcp)
+app.mount("/app_history", app_history)
 
 if __name__ == "__main__":
     import uvicorn

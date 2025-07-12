@@ -37,11 +37,14 @@ export const AgentApi = {
     })
   },
 
-  async askAgent(question: string){
-    return await api.get('/app_a2a/ask_a2a', {
+  async askAgent(session_id: string, question: string): Promise<string>{
+    let response = await api.get('/app_a2a/ask_a2a', {
       params:{
+        session_id: session_id,
         question: question,
       }
     })
+    let result: string = response.data.data
+    return result
   }
 }
