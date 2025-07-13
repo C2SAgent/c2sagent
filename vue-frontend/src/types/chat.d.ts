@@ -2,6 +2,7 @@ export interface ChatMessage {
   role: string;
   content: string;
   timestamp: string | Date;
+  isTemp?: boolean
 }
 
 export interface ChatSession {
@@ -10,3 +11,17 @@ export interface ChatSession {
   title: string;
   messages: ChatMessage[];
 }
+// export interface ChatMessage {
+//   id: string;
+//   content: string;
+//   sender: 'user' | 'bot';
+//   timestamp: Date;
+// }
+
+// export interface ChatSession {
+//   id: string;
+//   title: string;
+//   lastMessage: string;
+//   updatedAt: Date;
+//   messages: ChatMessage[];
+// }

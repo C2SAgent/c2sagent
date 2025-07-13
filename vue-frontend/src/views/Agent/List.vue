@@ -1,76 +1,122 @@
 <template>
-  <div class="agent-list">
-    <h2>智能体列表</h2>
-    <router-link to="/agent/create" class="create-btn">
-      新建智能体
-    </router-link>
-    <button @click="toggleChat" class="chat-btn">
-        {{ showChat ? '隐藏对话' : '与所有智能体对话' }}
-    </button>
-    <div v-if="showChat" class="simple-chat">
-      <div class="chat-area">
-        <div v-for="(msg, i) in messages" :key="i" class="message">
-          <strong>{{ msg.role === 'user' ? '您' : 'AI' }}:</strong> {{ msg.content }}
-        </div>
-      </div>
-      <div class="chat-input">
-        <input
-          v-model="inputMessage"
-          @keyup.enter="sendMessage"
-          placeholder="输入问题..."
-        />
-        <button @click="sendMessage">发送</button>
+  <div class="agent-list-container">
+    <div class="header-section">
+      <h2 class="page-title">智能体列表</h2>
+      <div class="action-buttons">
+        <router-link to="/agent/create" class="primary-btn">
+          <span>+</span> 新建智能体
+        </router-link>
+        <router-link to="/" class="secondary-btn">
+          与智能体团队对话
+        </router-link>
       </div>
     </div>
-    <div v-if="loading" class="loading">
-      <span>加载中...</span>
-      <span v-if="loadingProgress">{{ loadingProgress }}</span>
+
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <span>加载智能体数据中...</span>
+      <span v-if="loadingProgress" class="progress-text">{{ loadingProgress }}</span>
     </div>
     
-    <div v-else-if="loadError" class="error-message">
-      加载失败: {{ loadError }}
-      <button @click="retryLoading">重试</button>
+    <div v-else-if="loadError" class="error-state">
+      <div class="error-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="error-message">加载失败: {{ loadError }}</div>
+      <button @click="retryLoading" class="retry-btn">重试</button>
     </div>
     
     <div v-else class="agent-grid">
       <div v-for="agent in agents" :key="agent.id" class="agent-card">
-        <h3>{{ agent.name }}</h3>
-        <p>{{ agent.description }}</p>
+        <div class="card-header">
+          <h3 class="agent-name">{{ agent.name }}</h3>
+          <div class="agent-version">v{{ agent.version || '1.0' }}</div>
+        </div>
+        <p class="agent-description">{{ agent.description || '暂无描述' }}</p>
         
-        <div class="mcp-info">
+        <div class="mcp-info" :class="{ 'unbound': !agent.mcp }">
           <template v-if="agent.mcp">
-            <strong>绑定的MCP:</strong> 
-            {{ agent.mcp.name }} (ID: {{ agent.mcp.id }})
-            <button @click="unbindMcp(agent.id)" class="unbind-btn">解绑</button>
+            <div class="mcp-name">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M12 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M6 8H7a4 4 0 0 1 0 8H6"></path>
+              </svg>
+              <span>{{ agent.mcp.name }}</span>
+            </div>
+            <div class="mcp-id">ID: {{ agent.mcp.id }}</div>
+            <button @click="unbindMcp(agent.id, agent.mcp.id)" class="unbind-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              解绑mcp
+            </button>
           </template>
-          <template v-else>未绑定MCP</template>
+          <template v-else>
+            <div class="unbound-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              <span>未绑定MCP</span>
+            </div>
+          </template>
         </div>
         
-        <div class="agent-actions">
-          <button @click="deleteAgent(agent.id)" class="delete-btn">删除</button>
-          <button @click="showMcpSelection(agent)" class="bind-btn">绑定MCP</button>
+        <div class="card-actions">
+          <button @click="deleteAgent(agent.id)" class="delete-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            删除
+          </button>
+          <button @click="showMcpSelection(agent)" class="bind-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+              <path d="M12 8h1a4 4 0 0 1 0 8h-1"></path>
+              <path d="M6 8H7a4 4 0 0 1 0 8H6"></path>
+            </svg>
+            绑定MCP
+          </button>
         </div>
       </div>
     </div>
 
     <!-- MCP选择弹窗 -->
-    <div v-if="showMcpSelect" class="mcp-select-modal">
-      <div class="modal-content">
-        <h3>为 {{ selectedAgent?.name }} 选择MCP</h3>
-        <select v-model="selectedMcpId" class="mcp-select">
-          <option value="">请选择MCP</option>
-          <option 
-            v-for="mcp in mcpList" 
-            :key="mcp.id" 
-            :value="mcp.id"
-            :disabled="selectedAgent?.mcp?.id === mcp.id">
-            {{ mcp.name }} (ID: {{ mcp.id }})
-          </option>
-        </select>
-        
-        <div class="modal-actions">
-          <button @click="confirmBind" :disabled="!selectedMcpId">确认</button>
-          <button @click="cancelBind">取消</button>
+    <div v-if="showMcpSelect" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>为 {{ selectedAgent?.name }} 选择MCP</h3>
+          <button @click="cancelBind" class="modal-close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <select v-model="selectedMcpId" class="modal-select">
+            <option value="">请选择MCP</option>
+            <option 
+              v-for="mcp in mcpList" 
+              :key="mcp.id" 
+              :value="mcp.id"
+              :disabled="selectedAgent?.mcp?.id === mcp.id">
+              {{ mcp.name }} (MCP ID: {{ mcp.id }})
+            </option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button @click="cancelBind" class="modal-cancel-btn">取消</button>
+          <button @click="confirmBind" :disabled="!selectedMcpId" class="modal-confirm-btn">确认绑定</button>
         </div>
       </div>
     </div>
@@ -185,11 +231,11 @@ const confirmBind = async () => {
   }
 }
 
-const unbindMcp = async (agentId: number) => {
+const unbindMcp = async (agentId: number, mcpId: number) => {
   if (!confirm('确定要解绑此MCP吗？')) return
   
   try {
-    await AgentApi.correlateMcp(agentId, 0) // 假设0表示解绑
+    await AgentApi.discorrelateMcp(agentId, mcpId) // 假设0表示解绑
     
     // 更新本地数据
     const agent = agents.value.find(a => a.id === agentId)
@@ -200,162 +246,287 @@ const unbindMcp = async (agentId: number) => {
     alert('解绑失败: ' + (error instanceof Error ? error.message : '未知错误'))
   }
 }
-
-const showChat = ref(false)
-const inputMessage = ref('')
-const messages = ref<Array<{
-  role: 'user' | 'assistant'
-  content: string
-}>>([])
-
-// 切换聊天窗口
-const toggleChat = () => {
-  showChat.value = !showChat.value
-  if (showChat.value) {
-    messages.value = []
-    inputMessage.value = ''
-  }
-}
-
-// 发送消息
-const sendMessage = async () => {
-  if (!inputMessage.value.trim()) return
-
-  const userMessage = inputMessage.value
-  messages.value.push({ role: 'user', content: userMessage })
-  inputMessage.value = ''
-
-  try {
-    const res = await AgentApi.askAgent(userMessage)
-    
-    messages.value.push({
-      role: 'assistant',
-      content: res.data || '收到空响应'
-    })
-  } catch (error) {
-    messages.value.push({
-      role: 'assistant',
-      content: '请求出错: ' + (error instanceof Error ? error.message : '未知错误')
-    })
-  }
-}
 </script>
 
 <style scoped>
-.agent-list {
-  padding: 20px;
-  position: relative;
+.agent-list-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.create-btn {
-  display: inline-block;
-  margin-bottom: 20px;
-  padding: 8px 16px;
-  background-color: #4CAF50;
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #4299e1;
   color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
   text-decoration: none;
-  border-radius: 4px;
-  transition: background-color 0.3s;
 }
 
-.create-btn:hover {
-  background-color: #45a049;
+.primary-btn:hover {
+  background-color: #3182ce;
 }
 
-.loading {
-  padding: 20px;
-  text-align: center;
-  color: #666;
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: white;
+  color: #4299e1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.secondary-btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e0;
+}
+
+.loading-state {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(66, 153, 225, 0.2);
+  border-radius: 50%;
+  border-top-color: #4299e1;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-text {
+  color: #718096;
+  font-size: 0.875rem;
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.error-icon {
+  color: #e53e3e;
 }
 
 .error-message {
-  padding: 20px;
-  text-align: center;
-  color: #f44336;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  color: #e53e3e;
+  font-weight: 500;
 }
 
-.error-message button {
-  padding: 8px 16px;
-  background-color: #f44336;
+.retry-btn {
+  padding: 0.75rem 1.25rem;
+  background-color: #e53e3e;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
   cursor: pointer;
-  margin-top: 10px;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background-color: #c53030;
 }
 
 .agent-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .agent-card {
-  border: 1px solid #e0e0e0;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
   background-color: white;
+  transition: all 0.2s;
+}
+
+.agent-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.agent-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.agent-version {
+  font-size: 0.75rem;
+  color: #718096;
+  background-color: #f8fafc;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.agent-description {
+  color: #4a5568;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
 }
 
 .mcp-info {
-  margin: 10px 0;
-  padding: 8px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  border-left: 3px solid #4285f4;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background-color: #f8fafc;
+  border-left: 4px solid #4299e1;
 }
 
-.agent-actions {
+.mcp-info.unbound {
+  border-left-color: #e2e8f0;
+}
+
+.mcp-name {
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 0.25rem;
 }
 
-.agent-actions button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.2s;
+.mcp-id {
+  font-size: 0.75rem;
+  color: #718096;
 }
 
-.agent-actions button:hover {
-  opacity: 0.9;
-}
-
-.delete-btn {
-  background-color: #f44336;
-  color: white;
-}
-
-.bind-btn {
-  background-color: #4285f4;
-  color: white;
+.unbound-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #718096;
 }
 
 .unbind-btn {
-  margin-left: 10px;
-  padding: 2px 6px;
-  background-color: #ff9800;
-  color: white;
-  border: none;
-  border-radius: 3px;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: transparent;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+  border-radius: 4px;
+  font-size: 0.75rem;
   cursor: pointer;
-  font-size: 12px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-/* MCP选择弹窗样式 */
-.mcp-select-modal {
+.unbind-btn:hover {
+  background-color: rgba(229, 62, 62, 0.1);
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.delete-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: white;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.delete-btn:hover {
+  background-color: rgba(229, 62, 62, 0.1);
+}
+
+.bind-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: white;
+  color: #4299e1;
+  border: 1px solid #4299e1;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.bind-btn:hover {
+  background-color: rgba(66, 153, 225, 0.1);
+}
+
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -368,105 +539,102 @@ const sendMessage = async () => {
   z-index: 1000;
 }
 
-.modal-content {
+.modal-container {
   background-color: white;
-  padding: 25px;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 450px;
   max-width: 90%;
+  overflow: hidden;
 }
 
-.mcp-select {
-  width: 100%;
-  padding: 10px;
-  margin: 15px 0;
-  border: 1px solid #ddd;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #718096;
+  padding: 0.25rem;
   border-radius: 4px;
 }
 
-.modal-actions {
+.modal-close-btn:hover {
+  background-color: #f8fafc;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.modal-select:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
 }
 
-.modal-actions button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.modal-actions button:first-child {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.modal-actions button:last-child {
-  background-color: #f1f1f1;
-}
-
-/* 新增的简洁聊天样式 */
-.action-buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.chat-btn {
-  padding: 8px 16px;
-  background-color: #4285f4;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.simple-chat {
-  border: 1px solid #ddd;
+.modal-cancel-btn {
+  padding: 0.75rem 1.25rem;
+  background-color: white;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  background-color: #f9f9f9;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.chat-area {
-  height: 200px;
-  overflow-y: auto;
-  margin-bottom: 10px;
-  padding: 10px;
-  background: white;
-  border-radius: 4px;
+.modal-cancel-btn:hover {
+  background-color: #f8fafc;
 }
 
-.message {
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-.message strong {
-  color: #4285f4;
-}
-
-.chat-input {
-  display: flex;
-  gap: 10px;
-}
-
-.chat-input input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.chat-input button {
-  padding: 8px 16px;
-  background-color: #4CAF50;
+.modal-confirm-btn {
+  padding: 0.75rem 1.25rem;
+  background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
+.modal-confirm-btn:hover {
+  background-color: #3182ce;
+}
+
+.modal-confirm-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
 </style>

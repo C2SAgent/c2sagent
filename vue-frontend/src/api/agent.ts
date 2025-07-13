@@ -29,6 +29,13 @@ export const AgentApi = {
     })
   },
 
+  async discorrelateMcp(agentId: number, mcpId: number) {
+    return await api.post('/manager_agent/discorr_mcp', {
+      agent_card_id: agentId,
+      mcp_server_id: mcpId 
+    })
+  },
+
   async findMcpByAgent(agentId: number) {
     return await api.get('/manager_agent/find_mcp', {
       params:{

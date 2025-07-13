@@ -56,6 +56,19 @@ async def do_mcp_corr_tool(
     
     return BaseResponse()
 
+@app.post("/discorr_tool", response_model=BaseResponse)
+async def do_mcp_discorr_tool(
+    request = Request,
+    mcp_server_id: int = Body(...),
+    tool_name: str = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    # print(tool)
+    manager = EnhancedServerToolManager()
+    manager.remove_tool_from_server(str(mcp_server_id), tool_name)
+    
+    return BaseResponse()
+
 @app.get("/tool/list", response_model=BaseResponse)
 async def do_tool_list(
     request: Request,
@@ -70,3 +83,6 @@ async def do_tool_list(
         tools.append(tool)
     print(tools)
     return ListResponse(data=tools)
+
+
+

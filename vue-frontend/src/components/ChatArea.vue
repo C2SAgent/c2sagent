@@ -14,6 +14,16 @@
           {{ formatTime(message.timestamp) }}
         </div>
       </div>
+      <!-- 新增：等待响应时的加载指示器 -->
+      <div v-if="isWaiting" class="message bot">
+        <div class="message-content">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="message-input">
       <input
@@ -27,7 +37,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType, ref, watch, nextTick } from 'vue';
+import { defineComponent, type PropType, ref, watch, nextTick, onMounted } from 'vue';
 import type { ChatMessage } from '@/types/chat';
 
 export default defineComponent({
@@ -39,6 +49,10 @@ export default defineComponent({
     },
     sessionTitle: {
       type: String,
+      required: true
+    },
+    isWaiting: { // 新增：接收等待状态
+      type: Boolean,
       required: true
     }
   },
@@ -54,27 +68,23 @@ export default defineComponent({
       }
     };
 
-    const formatTime = (input: Date | string | number | null) => {
-      // 处理 null/undefined
-      if (!input) return '--:--';
+    const formatTime = (datetime: Date | string) => {
+      const date = typeof datetime === 'string' 
+        ? new Date(datetime.replace(' ', 'T')) 
+        : datetime;
       
-      // 统一转换为 Date 对象
-      const date = input instanceof Date ? input : new Date(input);
-      
-      // 验证日期有效性
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date:', input);
+        console.warn('Invalid date:', datetime);
         return '--:--';
       }
       
       return date.toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit',
-        hour12: false // 使用24小时制（可选）
+        hour12: false
       });
     };
 
-    // 自动滚动到底部
     const scrollToBottom = () => {
       nextTick(() => {
         if (messagesContainer.value) {
@@ -84,6 +94,10 @@ export default defineComponent({
     };
 
     watch(() => props.messages, scrollToBottom, { deep: true });
+
+    onMounted(() => {
+      scrollToBottom()
+    })
 
     return {
       newMessage,
@@ -101,82 +115,153 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
+  background: #ffffff;
+  position: relative;
 }
 
 .chat-header {
-  padding: 15px;
-  background-color: #3498db;
-  color: white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 1rem 1.5rem;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .messages-container {
   flex: 1;
-  padding: 15px;
   overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: #ffffff;
+  scroll-behavior: smooth;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
 }
 
 .message {
-  margin-bottom: 15px;
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 18px;
+  max-width: 80%;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
   position: relative;
+  animation: fadeIn 0.3s ease;
+  line-height: 1.5;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .message.user {
   margin-left: auto;
-  background-color: #3498db;
+  background: #4299e1;
   color: white;
-  border-bottom-right-radius: 5px;
+  border-bottom-right-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.2);
 }
 
-.message.system {
+.message.bot {
   margin-right: auto;
-  background-color: white;
-  color: #333;
-  border-bottom-left-radius: 5px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .message-content {
   word-wrap: break-word;
+  font-size: 0.95rem;
 }
 
 .message-time {
-  font-size: 0.7rem;
-  color: #7f8c8d;
+  font-size: 0.75rem;
+  color: #64748b;
   text-align: right;
-  margin-top: 5px;
+  margin-top: 0.5rem;
 }
 
 .message-input {
   display: flex;
-  padding: 15px;
-  background-color: white;
-  border-top: 1px solid #ddd;
+  padding: 1rem;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
 }
 
 .message-input input {
   flex: 1;
-  padding: 10px 15px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
+  padding: 0.875rem 1.25rem;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
   outline: none;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.message-input input:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
 .message-input button {
-  margin-left: 10px;
-  padding: 10px 20px;
-  background-color: #3498db;
+  padding: 0.875rem 1.5rem;
+  background: #4299e1;
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: 1rem;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .message-input button:hover {
-  background-color: #2980b9;
+  background: #3182ce;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(66, 153, 225, 0.3);
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0;
+}
+
+.typing-indicator span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+  margin: 0 4px;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
 }
 </style>

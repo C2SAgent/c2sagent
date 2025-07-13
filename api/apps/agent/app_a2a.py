@@ -74,14 +74,14 @@ async def ask_agent(
         result = await agent.completion(messages)
         message_result = {
             "role": "system",
-            "content": result[0]["answer"],
+            "content": result,
             "timestamp": datetime.now().isoformat()
         }
         mongo.add_message(session_id, message_result)
     finally:
         mongo.close()
 
-    return BaseResponse(data=result[0]["answer"])
+    return BaseResponse(data=result)
 
 @app.get("/ask_a2a_streaming", response_model=BaseResponse)
 async def ask_agent_streaming(

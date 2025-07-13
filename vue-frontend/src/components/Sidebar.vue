@@ -77,72 +77,105 @@ export default defineComponent({
 });
 </script>
 
+
 <style scoped>
 .sidebar {
-  width: 20%;
+  width: 260px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #2c3e50;
-  color: white;
+  background: #ffffff;
+  color: #1e293b;
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
 .sidebar-top {
   flex: 7;
   overflow-y: auto;
+  padding: 0 0.75rem;
 }
 
 .sidebar-bottom {
   flex: 3;
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  border-top: 1px solid #34495e;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+  gap: 0.5rem;
 }
 
 .new-chat-btn {
-  width: 90%;
-  margin: 15px auto;
-  padding: 10px;
-  background-color: #3498db;
+  width: 100%;
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  background: #4299e1;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 0.75rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(66, 153, 225, 0.3);
+}
+
+.new-chat-btn:hover {
+  background: #3182ce;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(66, 153, 225, 0.4);
 }
 
 .new-chat-btn span {
-  font-size: 1.2rem;
-  margin-right: 5px;
+  font-size: 1.3rem;
+  margin-right: 0.5rem;
+  font-weight: bold;
 }
 
 .chat-list {
   overflow-y: auto;
-  height: calc(100% - 60px);
+  pointer-events: auto; 
+  height: calc(100% - 5rem);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #ffffff;
+}
+
+.chat-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-list::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
 }
 
 .sidebar-bottom button {
-  margin: 5px 0;
-  padding: 10px;
-  background-color: transparent;
-  color: white;
-  border: 1px solid #34495e;
-  border-radius: 5px;
+  margin: 0.25rem 0;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
   cursor: pointer;
   text-align: left;
   display: flex;
   align-items: center;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
 .sidebar-bottom button:hover {
-  background-color: #34495e;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateX(3px);
 }
 
 .sidebar-bottom button span {
-  margin-right: 8px;
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
 }
 </style>

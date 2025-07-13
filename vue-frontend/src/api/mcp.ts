@@ -27,6 +27,16 @@ export const McpApi = {
     return await api.post('/manager_mcp/corr_tool', body)
   },
   
+  async discorrelateTool(mcpId: number, tool_name: string) {
+    let body = {
+      mcp_server_id: mcpId,
+      tool_name: tool_name // 确保是有效的JSON
+    }
+    console.log(body)
+    return await api.post('/manager_mcp/discorr_tool', body)
+  },
+  
+  
   // 获取工具列表 (返回原始JSON)
   async listTools(mcpId: number) {
     return await api.get('/manager_mcp/tool/list', {

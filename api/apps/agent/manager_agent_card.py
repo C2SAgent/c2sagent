@@ -76,6 +76,19 @@ async def do_agent_corr_mcp(
     })
     return BaseResponse()
 
+@app.post("/discorr_mcp", response_model=BaseResponse)
+async def do_agent_discorr_mcp(
+    request: Request,
+    agent_card_id: int = Body(...),
+    mcp_server_id: int = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user)
+):
+    db.delete(models.AgentCardAndMcpServer, 
+        agent_card_id= agent_card_id,
+        mcp_server_id= mcp_server_id
+    )
+    return BaseResponse()
+
 @app.get("/find_mcp", response_model=BaseResponse)
 async def do_find_mcp(
     request: Request,
