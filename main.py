@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.openapi.docs import (
     get_redoc_html,
@@ -19,6 +20,8 @@ from api.apps.agent.app_history import app as app_history
 
 from src_a2a.a2a_server import main as main_a2a
 from src_mcp.mcp_server.server.mcp_server import main as main_mcp
+
+load_dotenv()
 
 
 # 创建主应用

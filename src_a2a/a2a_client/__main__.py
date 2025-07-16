@@ -7,7 +7,9 @@ from core.db.base import DatabaseManager
 from model.model_agent import AgentCard
 
 app = FastAPI()
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+DATABASE_URL = os.getenv("DATABASE_URL")
+db = DatabaseManager(DATABASE_URL)
+
 
 class AgentRequest(BaseModel):
     host: str = 'localhost'

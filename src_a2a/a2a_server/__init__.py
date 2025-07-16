@@ -30,7 +30,10 @@ from a2a.server.request_handlers.jsonrpc_handler import RequestHandler
 from src_a2a.a2a_server.agent_executor import CoreAgentExecutor
 from starlette.responses import JSONResponse
 
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+import os
+DATABASE_URL = os.getenv("DATABASE_URL")
+db = DatabaseManager(DATABASE_URL)
+
 
 # class DatabaseA2ARequestHandler(DefaultRequestHandler):
 #     """基于数据库的动态请求处理器"""

@@ -12,8 +12,11 @@ from typing import Optional, override
 from src_a2a.a2a_server.agent import Agent
 from core.db.base import DatabaseManager
 from model.model_agent import AgentCard, AgentCardAndMcpServer
+import os
 
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+DATABASE_URL = os.getenv("DATABASE_URL")
+db = DatabaseManager(DATABASE_URL)
+
 
 class CoreAgentExecutor(AgentExecutor):
     """Test AgentProxy Implementation."""

@@ -1,0 +1,24 @@
+.git/
+
+test/
+__pycache__/
+temp/
+logs/
+
+# 忽略特定文件
+*.log
+*.tmp
+*.swp
+
+# 忽略特定扩展名的文件
+*.pyc
+*.pyo
+*.pyd
+
+
+*.pyc
+.venv/  # 避免本地虚拟环境被复制
+.DS_Store
+.env
+logs/
+tests/

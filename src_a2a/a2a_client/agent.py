@@ -32,7 +32,9 @@ from jinja2 import Template
 from core.db.base import DatabaseManager
 from model.model_agent import UserConfig
 
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+DATABASE_URL = os.getenv("DATABASE_URL")
+db = DatabaseManager(DATABASE_URL)
+
 
 
 dir_path = Path(__file__).parent

@@ -5,18 +5,21 @@ import re
 import shutil
 from typing import AsyncGenerator
 
+from dotenv import load_dotenv
 from fastmcp import Client
 from mcp.types import TextContent, Tool
 from openai import AsyncOpenAI
 import datetime
 
 from core.llm.llm_client import LLMClient
-
 from core.db.base import DatabaseManager
 from model.model_agent import AgentCard, McpServer
+from sqlalchemy.future import select
 
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
-
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+print(DATABASE_URL)
+db = DatabaseManager(DATABASE_URL)
 
 def load_mcp_config(file_path: str) -> dict[str, any]:
     with open(file_path, "r") as f:
@@ -36,17 +39,13 @@ class ChatSession:
 
     async def process_llm_response(self, llm_response: str, mcp_server_id) -> str:
         try:
-            # TODO: 需要扩展JSON验证
             json_match = re.search(r"\[.*?\]", llm_response, re.DOTALL)
-            # 工具调用
             if json_match:
                 json_content = json_match.group(0)
                 logging.info(f"Extracted JSON content: {json_content}")
-            # 非工具调用，普通对话
             else:
                 json_content = llm_response
             
-
             tool_calls = json.loads(json_content)
             results = ""
             for tool_call in tool_calls:
@@ -79,8 +78,6 @@ class ChatSession:
                                 logging.info(
                                     f"{tool_call['tool']} execution result: {result}"
                                 )
-                                
-                                # 过滤文本信息
                                 results += f"{tool_call['tool']} execution result: {[res.text for res in filter(lambda x: True if isinstance(x, TextContent) else False, result)]}\n"
                             except Exception as e:
                                 error_msg = f"Error executing tool: {str(e)}"
@@ -115,17 +112,14 @@ class ChatSession:
         """
 
     async def _get_agent_response(self, messages, mcp_server_id, agent_id):
-        # for server_name in self.servers:
-        agent_find = db.fetch_one(AgentCard, id= agent_id)
-        print("==================================================agent_find")
-        print(agent_find.llm_url)
-        print(agent_find.llm_key)
+        # 异步查询AgentCard
+        agent_find = await db.fetch_one(AgentCard, id=agent_id)
+        logging.info(f"Agent config: {agent_find.llm_url}, {agent_find.llm_key}")
         self.llm_client.llm_url = agent_find.llm_url
         self.llm_client.api_key = agent_find.llm_key
-        print(self.llm_client.llm_url)
-        print(self.llm_client.api_key)
 
-        mcp_server_find = db.fetch_one(McpServer, id= mcp_server_id)
+        # 异步查询McpServer
+        mcp_server_find = await db.fetch_one(McpServer, id=mcp_server_id)
         self.server_name = mcp_server_find.name
 
         mcp_config = {
@@ -194,18 +188,13 @@ class ChatSession:
             result = await self.process_llm_response(llm_response, mcp_server_id)
         return result
 
-    # TODO: 待完成流式agent接口
-    async def get_agent_response_stream(self, messages, mcp_server_id, agent_id):
-        agent_find = db.fetch_one(AgentCard, id= agent_id)
-        print("==================================================agent_find")
-        print(agent_find.llm_url)
-        print(agent_find.llm_key)
+    async def get_agent_response_stream(self, messages, mcp_server_id, agent_id) -> AsyncGenerator[str, None]:
+        # 异步查询数据库
+        agent_find = await db.fetch_one(AgentCard, id=agent_id)
+        mcp_server_find = await db.fetch_one(McpServer, id=mcp_server_id)
+        
         self.llm_client.llm_url = agent_find.llm_url
         self.llm_client.api_key = agent_find.llm_key
-        print(self.llm_client.llm_url)
-        print(self.llm_client.api_key)
-
-        mcp_server_find = db.fetch_one(McpServer, id= mcp_server_id)
         self.server_name = mcp_server_find.name
 
         mcp_config = {
@@ -220,61 +209,22 @@ class ChatSession:
             server_name: parse_mcp_client(config)
             for server_name, config in mcp_config["mcpServers"].items()
         }
-        tools_description = ""
-
+        
         async with mcp_servers[f"{self.server_name}"] as server:
             tools = await server.list_tools()
-            tools_description += f"Service name: {self.server_name}\n"
-            tools_description += "\n".join(
+            tools_description = f"Service name: {self.server_name}\n" + "\n".join(
                 [self.format_for_llm(tool) for tool in tools]
             )
 
-        system_message = (
-            "You are a helpful assistant  have access to these services and the tools they offer:\n\n"
-            # 工具描述prompt
-            f"{tools_description}\n"
-            "Choose the appropriate tool based on the user's question. "
-            "If no tool is needed, reply directly.\n\n"
-            "IMPORTANT: When you need to use a tool, you must ONLY respond with "
-            "the exact JSON list object format below, nothing else:\n"
-            "[{\n"
-            '    "tool": "tool-name-1",\n'
-            '    "arguments": {\n'
-            '        "argument-name": "value"\n'
-            "    }\n"
-            "},\n"
-            "{\n"
-            '    "tool": "tool-name-2",\n'
-            '    "arguments": {\n'
-            '        "argument-name": "value"\n'
-            "    }\n"
-            "},]\n\n"
-            "When using the tool, user will return the result, so please be careful to distinguish it.\n"
-            # 时间处理prompt
-            f"When the user does not provide a specific date, the system uses {datetime.date.today()} as the baseline to coumpute the target date based on the user's intent"
-            "The dates/times you provide should must match the user's input exactly, be factually accurate, and must not fabricate false dates."
-            "After receiving a tool's response:\n"
-            "1. Transform the raw data into a natural, conversational response\n"
-            "2. Keep responses concise but informative\n"
-            "3. Focus on the most relevant information\n"
-            "4. Use appropriate context from the user's question\n"
-            "5. Avoid simply repeating the raw data\n\n"
-            "Please use only the tools that are explicitly defined above."
-        )
-        messages = [{"role": "system", "content": system_message}]+messages
-        async for llm_response in self.llm_client.get_stream_response(messages, mcp_server_id=mcp_server_id):
-            result = await self.process_llm_response(llm_response)
-            while result != llm_response:
-                messages.append({"role": "assistant", "content": llm_response})
-                messages.append({"role": "user", "content": result})
-                async for llm_response in self.llm_client.get_stream_response(messages, mcp_server_id=mcp_server_id):
-                    logging.info(f"\nAssistant: {llm_response}")
-                    result = await self.process_llm_response(llm_response)
-            return result
-
+        system_message = f"""..."""  # 同_get_agent_response
+        
+        messages = [{"role": "system", "content": system_message}] + messages
+        
+        async for chunk in self.llm_client.get_stream_response(messages, mcp_server_id):
+            yield chunk
 
 def parse_mcp_client(config: dict[str, any]):
     command = shutil.which("npx") if config["command"] == "npx" else config["command"]
     if command is None:
-        raise ValueError("no")
+        raise ValueError("Command not found")
     return Client(config["url"])

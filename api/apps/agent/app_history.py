@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import os
 from fastapi import Body, FastAPI, HTTPException, Query, Request, Depends
 from pydantic import BaseModel
 from typing import Literal, Optional
@@ -12,9 +13,18 @@ from model.model_agent import AgentCard
 from model import model_agent as models
 from fastapi.responses import StreamingResponse
 from core.db.base_mongo import MongoDBManager
+from api.apps.agent.config import settings
 
-app = FastAPI()
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+from .database import engine
+
+DATABASE_URL = settings.DATABASE_URL
+db = DatabaseManager(DATABASE_URL)
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
+
+app = FastAPI(on_startup=[init_db])
 
 @app.get("/list", response_model=ListResponse)
 async def do_list_session(
@@ -31,10 +41,10 @@ async def do_list_session(
     """
     mongo = MongoDBManager()
     try:
-        mongo.connect()
-        sessions = mongo.get_sessions(user_id=str(current_user.id))
+        await mongo.connect()
+        sessions = await mongo.get_sessions(user_id=str(current_user.id))
     finally:
-        mongo.close()
+        await mongo.close()
     return ListResponse(data=sessions)
 
 @app.get("/load", response_model=BaseResponse)
@@ -45,10 +55,10 @@ async def do_load_session(
 ):
     mongo = MongoDBManager()
     try:
-        mongo.connect()
-        session = mongo.get_session_by_ids(user_id=str(current_user.id), session_id=session_id)
+        await mongo.connect()
+        session = await mongo.get_session_by_ids(user_id=str(current_user.id), session_id=session_id)
     finally:
-        mongo.close()
+        await mongo.close()
     print(session)
     return BaseResponse(data=session)
 
@@ -59,16 +69,18 @@ async def do_create_session(
 ):
     mongo = MongoDBManager()
     try:
-        mongo.connect()
+        await mongo.connect()
         question_msg = {
             "role": "system",
             "content": "您好，我们是一个智能团队，叫小C，有什么安排的都可以向我提呦~~~",
             "timestamp": datetime.now().isoformat()
         }
-        session_id = mongo.create_session(str(current_user.id), question_msg)
-        result = mongo.get_session_by_ids(str(current_user.id), session_id)
+        session_id = await mongo.create_session(str(current_user.id), question_msg)
+        result = await mongo.get_session_by_ids(str(current_user.id), session_id)
     finally:
-        mongo.close()
+        await mongo.close()
+    print("====================================create")
+    print(result)
     return BaseResponse(data=result)
 
 @app.post("/delete", response_model=BaseResponse)
@@ -79,8 +91,8 @@ async def do_delete_session(
 ):
     mongo = MongoDBManager()
     try:
-        mongo.connect()
-        result = mongo.delete_session(session_id)
+        await mongo.connect()
+        result = await mongo.delete_session(session_id)
     finally:
-        mongo.close()
+        await mongo.close()
     return BaseResponse(data=result)

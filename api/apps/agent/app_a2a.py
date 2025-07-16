@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import os
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from pydantic import BaseModel
 from typing import Literal, Optional
@@ -13,18 +14,19 @@ from model.model_agent import AgentCard
 from model import model_agent as models
 from fastapi.responses import StreamingResponse
 
-app = FastAPI()
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+from api.apps.agent.config import settings
 
-class AgentRequest(BaseModel):
-    host: str = 'localhost'
-    port: int = 10001
-    mode: Literal['completion', 'streaming'] = 'streaming'
-    user_id: str
-    question: str
+from .database import engine
 
-class AgentResponse(BaseModel):
-    result: str
+DATABASE_URL = settings.DATABASE_URL
+db = DatabaseManager(DATABASE_URL)
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
+
+app = FastAPI(on_startup=[init_db])
+
 
 @app.get("/ask_a2a", response_model=BaseResponse)
 async def ask_agent(
@@ -57,7 +59,7 @@ async def ask_agent(
         print(session_id)
         messages = mongo.get_session_by_ids(str(current_user.id), session_id)['messages']
         
-        agent_finds = db.fetch_all(AgentCard, {"user_id": current_user.id})
+        agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
         if not agent_finds:
             raise HTTPException(status_code=404, detail="Agent not found for this user")
 

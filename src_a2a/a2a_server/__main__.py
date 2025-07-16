@@ -21,7 +21,9 @@
 # from core.db.base import DatabaseManager
 # from model.model_agent import AgentCardAndInputMode, AgentCardAndOutputMode, AgentCardAndSkill, InputMode, Skill
 # from model.model_agent import AgentCard as AgentCard_
-# db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+# DATABASE_URL = os.getenv("DATABASE_URL")
+db = DatabaseManager(DATABASE_URL)
+
 
 # # 假设这是您自定义的AgentExecutor
 # class LifeAgentExecutor(AgentExecutor):
