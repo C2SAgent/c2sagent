@@ -32,10 +32,10 @@ from jinja2 import Template
 from core.db.base import DatabaseManager
 from model.model_agent import UserConfig
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-db = DatabaseManager(DATABASE_URL)
+from api.apps.agent.config import settings
 
-
+DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
+db = DatabaseManager(DATABASE_SYNC_URL)
 
 dir_path = Path(__file__).parent
 

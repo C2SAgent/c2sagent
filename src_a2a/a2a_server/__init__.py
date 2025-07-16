@@ -21,7 +21,7 @@ from starlette.requests import Request
 from typing import Any, Callable, Dict, List, Optional
 import json
 
-from core.db.base import DatabaseManager
+from core.db.base_sync import DatabaseManager
 from model.model_agent import AgentCardAndInputMode, AgentCardAndOutputMode, AgentCardAndSkill, InputMode, Skill
 from model.model_agent import AgentCard as AgentCard_
 from a2a.server.request_handlers.jsonrpc_handler import RequestHandler
@@ -30,49 +30,11 @@ from a2a.server.request_handlers.jsonrpc_handler import RequestHandler
 from src_a2a.a2a_server.agent_executor import CoreAgentExecutor
 from starlette.responses import JSONResponse
 
-import os
-DATABASE_URL = os.getenv("DATABASE_URL")
-db = DatabaseManager(DATABASE_URL)
+from api.apps.agent.config import settings
 
+DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
+db = DatabaseManager(DATABASE_SYNC_URL)
 
-# class DatabaseA2ARequestHandler(DefaultRequestHandler):
-#     """基于数据库的动态请求处理器"""
-    
-#     def __init__(self, task_store: InMemoryTaskStore, db: Any, executor_factory: Callable[[str], AgentExecutor]):
-#         super().__init__(None, task_store)
-#         self.task_store = task_store
-#         self.db = db
-#         self.executor_factory = executor_factory
-
-#     async def on_get_task(self, request: GetTaskRequest, context: Any = None) -> GetTaskResponse:
-#         """处理获取任务请求"""
-#         # 安全获取 agent_index
-#         agent_index = "default"
-#         if context is not None:
-#             agent_index = getattr(context, "agent_index", "default")
-        
-#         # 创建执行器实例
-#         executor = self.executor_factory(agent_index)
-        
-#         # 调用执行器处理请求
-#         return await executor.get_task(request)
-
-#     async def on_message_send(self, request: SendMessageRequest, context: Any = None) -> SendMessageResponse:
-#         """处理发送消息请求"""
-#         # 安全获取 agent_index
-#         agent_index = "default"
-#         if context is not None:
-#             agent_index = getattr(context, "agent_index", "default")
-        
-#         print("===============================================")
-#         print(agent_index)
-        
-#         # 创建执行器实例
-#         executor = self.executor_factory(agent_index)
-        
-#         # 调用执行器处理请求
-#         return await executor.send_message(request)
-    
 class DynamicContextBuilder:
     """上下文构建器包装类，添加 agent_index 属性"""
     
@@ -125,12 +87,7 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
             skills=[],
             examples=[]
         )
-        # self.agent_index = 0
-        # task_store = InMemoryTaskStore()
-        # http_handler = A2ARequestHandler(
-        #     agent_executor=CoreAgentExecutor(agent_index=self.agent_index),
-        #     task_store=task_store,
-        # )
+
         self.task_store = InMemoryTaskStore()
         super().__init__(agent_card=temp_card, http_handler=http_handler)
         
@@ -298,17 +255,6 @@ def main(host: str, port: int):
     """启动数据库驱动的A2A服务器"""
     # 初始化数据库
 
-    task_store = InMemoryTaskStore()
-    
-    def executor_factory(agent_index: int) -> AgentExecutor:
-        """根据agent索引创建执行器"""
-        return CoreAgentExecutor(agent_index=agent_index)
-    
-    # request_handler = DatabaseA2ARequestHandler(
-    #     task_store=task_store,
-    #     db=db,
-    #     executor_factory=executor_factory
-    # )
     task_store = InMemoryTaskStore()
     request_handler = DefaultRequestHandler(
         agent_executor=CoreAgentExecutor(8),

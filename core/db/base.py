@@ -42,6 +42,15 @@ class DatabaseManager:
     async def _get_session(self) -> AsyncSession:
         """获取一个新的数据库会话"""
         return self.Session()
+    
+    def _get_session_sync(self):
+        """获取一个新的数据库会话"""
+        return self.Session()
+
+    def _close_session_sync(self, session):
+        """关闭数据库会话"""
+        if session:
+            session.close()
 
     async def _close_session(self, session: AsyncSession):
         """关闭数据库会话"""
@@ -294,3 +303,20 @@ class DatabaseManager:
             raise e
         finally:
             await self._close_session(session)
+            
+    def fetch_one_sync(self, model: Type[Base], **filters) -> Optional[Any]:
+        """
+        根据条件获取单个记录
+        
+        Args:
+            model: SQLAlchemy模型类
+            filters: 查询条件，例如 id=1, name='test'
+            
+        Returns:
+            查询到的记录对象或None
+        """
+        session = self._get_session_sync()
+        try:
+            return session.query(model).filter_by(**filters).first()
+        finally:
+            self._close_session_sync(session)

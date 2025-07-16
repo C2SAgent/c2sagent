@@ -45,19 +45,20 @@ async def ask_agent(
     """
     mongo = MongoDBManager()
     try:
-        mongo.connect()
+        await mongo.connect()
         question_msg = {
             "role": "user",
             "content": question,
             "timestamp": datetime.now().isoformat()
         }
         if session_id == '':
-            session_id = mongo.create_session(str(current_user.id), question_msg)
+            session_id = await mongo.create_session(str(current_user.id), question_msg)
         else:
-            mongo.add_message(session_id, question_msg)
+            await mongo.add_message(session_id, question_msg)
         print("===========================session_id")
         print(session_id)
-        messages = mongo.get_session_by_ids(str(current_user.id), session_id)['messages']
+        messages_find = await mongo.get_session_by_ids(str(current_user.id), session_id)
+        messages = messages_find['messages']
         
         agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
         if not agent_finds:
@@ -79,9 +80,9 @@ async def ask_agent(
             "content": result,
             "timestamp": datetime.now().isoformat()
         }
-        mongo.add_message(session_id, message_result)
+        await mongo.add_message(session_id, message_result)
     finally:
-        mongo.close()
+        await mongo.close()
 
     return BaseResponse(data=result)
 
@@ -100,7 +101,7 @@ async def ask_agent_streaming(
         AgentResponse: The response from the agent.
     """
     
-    agent_finds = db.fetch_all(AgentCard, {"user_id": 36})
+    agent_finds = await db.fetch_all(AgentCard, {"user_id": 36})
     if not agent_finds:
         raise HTTPException(status_code=404, detail="Agent not found for this user")
 
