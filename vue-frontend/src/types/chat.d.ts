@@ -1,6 +1,8 @@
 export interface ChatMessage {
   role: string;
   content: string;
+  type: string;
+  references?: string[];
   timestamp: string | Date;
   isTemp?: boolean
 }

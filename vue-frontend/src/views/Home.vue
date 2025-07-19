@@ -13,7 +13,10 @@
       :messages="activeSession.messages"
       :sessionTitle="activeSession.title"
       :isWaiting="isWaiting"
+      :isTimeSeries="isTimeSeries"
       @send-message="handleSendMessage"
+      @upload-file="handleFileUpload"
+      @update:isTimeSeries="val => isTimeSeries = val"
     />
     <div v-else class="empty-chat-area">
       <p>请选择或创建一个新的聊天</p>
@@ -41,7 +44,9 @@ export default defineComponent({
     const sessions = ref<ChatSession[]>([]);
     const activeSessionId = ref<string>('');
     const activeSession = ref<ChatSession | null>(null);
-    const isWaiting = ref(false); // 新增：等待响应状态
+    const isWaiting = ref(false);
+    const uploadedFile = ref<File | undefined>(undefined);
+    const isTimeSeries = ref(false);
 
     watch(activeSessionId, async (newId) => {
       if (newId) {
@@ -65,51 +70,97 @@ export default defineComponent({
     };
 
     const createNewSession = async () => {
-      console.log("调用了创建新会话")
       const newSession: ChatSession = await HistoryApi.create()
       return newSession;
     };
 
-    const sendMessage = async (sessionId: string, content: string) => {
-      const session = sessions.value.find(s => s.session_id === sessionId);
-      if (!session) return;
-
-      // 用户消息
-      const userMessage: ChatMessage = {
-        content,
-        role: 'user',
-        timestamp: new Date()
-      };
-      session.messages.push(userMessage);
-      
-      // 设置等待状态为true
-      isWaiting.value = true;
-      
-      try {
-        // 请求AI响应
-        const botResponse = await AgentApi.askAgent(sessionId, content);
-        
-        // 添加AI消息
-        const botMessage: ChatMessage = {
-          content: botResponse,
-          role: 'bot',
-          timestamp: new Date()
-        };
-        session.messages.push(botMessage);
-      } catch (error) {
-        console.error('请求失败:', error);
-        // 添加错误消息
-        const errorMessage: ChatMessage = {
-          content: '请求失败，请重试',
-          role: 'bot',
-          timestamp: new Date()
-        };
-        session.messages.push(errorMessage);
-      } finally {
-        // 无论成功失败都取消等待状态
-        isWaiting.value = false;
-      }
+    const handleFileUpload = (file: File) => {
+      uploadedFile.value = file;
     };
+
+const sendMessage = async (sessionId: string, content: string) => {
+  const session = sessions.value.find(s => s.session_id === sessionId);
+  if (!session) return;
+
+  // 用户消息
+  const userMessage: ChatMessage = {
+    content,
+    role: 'user',
+    type: 'text',
+    timestamp: new Date()
+  };
+  session.messages.push(userMessage);
+  
+  isWaiting.value = true;
+  
+  try {
+    // 获取流式响应
+    const stream = await AgentApi.askAgentStreaming(
+      sessionId, 
+      content, 
+      isTimeSeries.value, 
+      uploadedFile.value
+    );
+
+    // 直接使用流对象
+    const reader = stream.getReader();
+    let botMessage: ChatMessage | null = null;
+    let done = false;
+
+    while (!done) {
+      const { value, done: streamDone } = await reader.read();
+      done = streamDone;
+      
+      if (value) {
+        // 处理流数据
+        const textDecoder = new TextDecoder();
+        const chunk = textDecoder.decode(value);
+        const lines = chunk.split('\n\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line);
+            const { event, data } = parsed;
+            
+            if (event === 'text') {
+              if (!botMessage) {
+                botMessage = {
+                  content: data,
+                  role: 'system',
+                  type: 'text',
+                  timestamp: new Date()
+                };
+                session.messages.push(botMessage);
+              } else {
+                botMessage.content += data;
+              }
+            } else if (event === 'doc' || event === 'img') {
+              session.messages.push({
+                content: data,
+                role: 'system',
+                type: event,
+                timestamp: new Date()
+              });
+            }
+          } catch (e) {
+            console.error('解析流数据失败:', e);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('请求失败:', error);
+    session.messages.push({
+      content: '请求失败，请重试',
+      role: 'system',
+      type: 'text',
+      timestamp: new Date()
+    });
+  } finally {
+    isWaiting.value = false;
+    uploadedFile.value = undefined;
+  }
+};
 
     const handleSelectSession = (sessionId: string) => {
       activeSessionId.value = sessionId;
@@ -117,8 +168,6 @@ export default defineComponent({
 
     const handleNewChat = async () => {
       const newSession = await createNewSession();
-      
-      // 修复点：添加新会话到列表并激活
       sessions.value = [newSession, ...sessions.value];
       activeSessionId.value = newSession.session_id;
     };
@@ -174,19 +223,20 @@ export default defineComponent({
       sessions,
       activeSessionId,
       activeSession,
-      isWaiting, // 暴露等待状态
+      isWaiting,
+      isTimeSeries,
       handleSelectSession,
       handleNewChat,
       handleSendMessage,
       handleNavigation,
       handleDeleteSession,
+      handleFileUpload,
       authStore
     };
   }
 });
-
-
 </script>
+
 <style scoped>
 .chat-container {
   display: flex;

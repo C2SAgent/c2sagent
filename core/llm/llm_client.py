@@ -14,9 +14,6 @@ class LLMClient:
     def __init__(self, llm_url: str, api_key: str) -> None:
         self.api_key: str = api_key
         self.llm_url: str = llm_url
-        print("=====================================================llm")
-        print(self.llm_url)
-        print(self.api_key)
         self.client: AsyncOpenAI = AsyncOpenAI(
             api_key=self.api_key, base_url=self.llm_url
         )
@@ -44,12 +41,15 @@ class LLMClient:
             if delta.content:
                 yield delta.content
 
-    async def get_response(self, messages: list[dict[str, str]], llm_url, api_key) -> str:
-        self.llm_url = llm_url
-        self.api_key = api_key
-        self.client: AsyncOpenAI = AsyncOpenAI(
-            api_key=self.api_key, base_url=self.llm_url
-        )
+    async def get_response(self, messages: list[dict[str, str]], llm_url=None, api_key=None) -> str:
+        print("================================================执行到了get_response的入口")
+        if llm_url:
+            self.llm_url = llm_url
+            self.api_key = api_key
+            self.client: AsyncOpenAI = AsyncOpenAI(
+                api_key=self.api_key, base_url=self.llm_url
+            )
+        print("================================================执行到了get_response的response")
         response = await self.client.chat.completions.create(
             messages=messages,
             stream=False,
@@ -58,5 +58,6 @@ class LLMClient:
             max_tokens=8192,
         )
         logging.info(f"Thinking: {response.choices[0].message.reasoning_content}")
+        logging.info(f"AnswerContent=====================: {response.choices[0].message.content}")
         return response.choices[0].message.content
 

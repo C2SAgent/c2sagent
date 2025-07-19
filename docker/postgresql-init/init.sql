@@ -1159,3 +1159,6 @@ ALTER TABLE ONLY public.user_config_and_llm_config
 -- PostgreSQL database dump complete
 --
 
+CREATE DATABASE timeseries;
+-- 可选：授权给 postgres 用户
+GRANT ALL PRIVILEGES ON DATABASE timeseries TO postgres;

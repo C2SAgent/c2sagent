@@ -1,4 +1,4 @@
-import axios from 'axios'
+import type { AxiosProgressEvent } from 'axios';
 import type { AgentCard, McpServer } from '@/types'
 import api from './index';
 // const api = axios.create({
@@ -53,5 +53,74 @@ export const AgentApi = {
     })
     let result: string = response.data.data
     return result
+  },
+
+  async askAgentStreaming(
+  session_id: string, 
+  question: string, 
+  isTimeSeries: boolean, 
+  file?: File
+): Promise<ReadableStream> {
+  console.log("调用了askAgentStreaming")
+  console.log(isTimeSeries)
+  const formData = new FormData();
+  if(file){
+    formData.append("files", file);
   }
+  formData.append("question", question);
+  formData.append("session_id", session_id);
+  formData.append("isTimeSeries", String(isTimeSeries));
+  formData.append("isDocAnalysis", "false");
+  const token = localStorage.getItem('access_token');
+  // console.log(token)
+  const response = await fetch('http://101.126.142.204:8000/app_a2a/ask_a2a_streaming', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      // 'Content-Type': 'multipart/form-data',
+      'Authorization': `Bearer ${token}`
+    },
+    // 不需要手动设置 Content-Type，FormData 会自动设置
+  });
+
+  if (!response.ok) {
+    throw new Error(`请求失败: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error('响应体为空');
+  }
+
+  return response.body;
+}
+
+// async askAgentStreaming(
+//   session_id: string, 
+//   question: string, 
+//   isTimeSeries: boolean, 
+//   file?: File
+// ): Promise<ReadableStream> {  // 明确返回 ReadableStream
+//   console.log("调用streaming接口");
+//   const formData = new FormData();
+//   if(file){
+//     formData.append("files", file);
+//   }
+//   formData.append("question", question);
+//   formData.append("session_id", session_id);
+//   formData.append("isTimeSeries", String(isTimeSeries));
+//   formData.append("isDocAnalysis", "false");
+
+//   const response = await api.post('/app_a2a/ask_a2a_streaming', formData, {
+//     headers: {
+//       'Content-Type': 'multipart/form-data',
+//     },
+//     responseType: 'stream' // 确保请求返回流
+//   });
+
+//   // 确保返回的是 ReadableStream
+//   if (response.data instanceof ReadableStream) {
+//     return response.data;
+//   }
+//   throw new Error('响应不是有效的ReadableStream');
+// }
 }
