@@ -68,12 +68,13 @@ const form = ref({
   llm_key: '',
   version: '1.0',
   streaming: false,
-  examples: []
+  examples: ['']
 })
 
 // 监听examples的变化，将文本转换为数组
-watch(() => form.value.examples, (newVal) => {
+watch(() => form.value.examples, (newVal: string | string[]) => {
   if (typeof newVal === 'string') {
+    // 确保赋值的类型匹配
     form.value.examples = newVal.split('\n').filter(line => line.trim())
   }
 }, { deep: true })

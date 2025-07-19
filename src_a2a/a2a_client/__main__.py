@@ -3,12 +3,14 @@ from pydantic import BaseModel
 from typing import Literal, Optional
 import asyncio
 from agent import Agent
-from core.db.base import DatabaseManager
+from core.db.base_sync import DatabaseManager
 from model.model_agent import AgentCard
 
 app = FastAPI()
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+from api.apps.agent.config import settings
 
+DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
+db = DatabaseManager(DATABASE_SYNC_URL)
 class AgentRequest(BaseModel):
     host: str = 'localhost'
     port: int = 10001

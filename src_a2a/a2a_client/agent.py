@@ -29,11 +29,13 @@ from a2a.types import (
 )
 from jinja2 import Template
 
-from core.db.base import DatabaseManager
+from core.db.base_sync import DatabaseManager
 from model.model_agent import UserConfig
 
-db = DatabaseManager("postgresql://postgres:postgre@localhost/manager_agent")
+from api.apps.agent.config import settings
 
+DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
+db = DatabaseManager(DATABASE_SYNC_URL)
 
 dir_path = Path(__file__).parent
 
@@ -166,9 +168,16 @@ class Agent:
         """
         pattern = r'```json\n(.*?)\n```'
         match = re.search(pattern, response, re.DOTALL)
+        print("======================================match")
         if match:
             return json.loads(match.group(1))
+        
         return []
+    
+    def extract_response(self, response: str) -> str:
+        pattern = r'<Answer>([\s\S]*?)</Answer>'
+        match = re.search(pattern, response)
+        return match.group(1).strip()
 
     async def send_message_to_an_agent(
         self, agent_card: AgentCard, message: str
@@ -232,7 +241,9 @@ class Agent:
         response = await self.decide(
             question, agent_prompt, agent_answers
         )
-
+        print("===============================================================response")
+        print(response)
+        print("===============================================================response")
         agents = self.extract_agents(response)
         if agents:
             for agent in agents:
@@ -249,7 +260,7 @@ class Agent:
                 )
             return agent_answers
         else:
-            return
+            return self.extract_response(response)
         
     def call_llm_streaming(self, prompt: str) -> str:
         """Call the LLM with the given prompt and return the response as a string or generator.

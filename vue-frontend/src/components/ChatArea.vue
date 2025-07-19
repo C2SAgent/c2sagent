@@ -9,12 +9,17 @@
         class="message"
         :class="message.role"
       >
-        <div class="message-content">{{ message.content }}</div>
+        <div v-if="message.type === 'text'" class="message-content">{{ message.content }}</div>
+        <div v-else-if="message.type === 'doc'" class="message-content">
+          <a :href="message.content" target="_blank">查看文档</a>
+        </div>
+        <div v-else-if="message.type === 'img'" class="message-content">
+          <img :src="message.content" alt="分析结果图片" style="max-width: 100%; max-height: 300px;">
+        </div>
         <div class="message-time">
           {{ formatTime(message.timestamp) }}
         </div>
       </div>
-      <!-- 新增：等待响应时的加载指示器 -->
       <div v-if="isWaiting" class="message bot">
         <div class="message-content">
           <div class="typing-indicator">
@@ -26,18 +31,31 @@
       </div>
     </div>
     <div class="message-input">
-      <input
-        v-model="newMessage"
-        @keyup.enter="sendMessage"
-        placeholder="输入消息..."
-      />
-      <button @click="sendMessage">发送</button>
+      <div class="input-options">
+        <label class="time-series-toggle">
+          <input type="checkbox" v-model="isTimeSeriesProxy" />
+          时序预测分析
+        </label>
+        <label class="file-upload-button">
+          <input type="file" @change="handleFileChange" style="display: none;" ref="fileInput" />
+          上传文件
+          <span v-if="uploadedFile" class="file-name">{{ uploadedFile.name }}</span>
+        </label>
+      </div>
+      <div class="input-container">
+        <input
+          v-model="newMessage"
+          @keyup.enter="sendMessage"
+          placeholder="输入消息..."
+        />
+        <button @click="sendMessage">发送</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType, ref, watch, nextTick, onMounted } from 'vue';
+import { defineComponent, type PropType, ref, watch, nextTick, onMounted, computed } from 'vue';
 import type { ChatMessage } from '@/types/chat';
 
 export default defineComponent({
@@ -51,20 +69,48 @@ export default defineComponent({
       type: String,
       required: true
     },
-    isWaiting: { // 新增：接收等待状态
+    isWaiting: {
+      type: Boolean,
+      required: true
+    },
+    isTimeSeries: {
       type: Boolean,
       required: true
     }
   },
-  emits: ['send-message'],
+  emits: ['send-message', 'upload-file', 'update:isTimeSeries'],
   setup(props, { emit }) {
     const newMessage = ref('');
     const messagesContainer = ref<HTMLElement | null>(null);
+    const uploadedFile = ref<File | null>(null);
+    const isTimeSeries = ref(false);
+    watch(() => props.isTimeSeries, (newVal) => {
+      emit('update:isTimeSeries', newVal);
+    });
+    
+    const fileInput = ref<HTMLInputElement | null>(null);
+
+    const isTimeSeriesProxy = computed({
+      get: () => props.isTimeSeries,
+      set: (val) => emit('update:isTimeSeries', val)
+    });
 
     const sendMessage = () => {
-      if (newMessage.value.trim()) {
+      if (newMessage.value.trim() || uploadedFile.value) {
         emit('send-message', newMessage.value.trim());
         newMessage.value = '';
+        if (fileInput.value) {
+          fileInput.value.value = ''; // 重置文件输入
+        }
+        uploadedFile.value = null;
+      }
+    };
+
+    const handleFileChange = (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      if (target.files && target.files.length > 0) {
+        uploadedFile.value = target.files[0];
+        emit('upload-file', uploadedFile.value);
       }
     };
 
@@ -102,8 +148,13 @@ export default defineComponent({
     return {
       newMessage,
       messagesContainer,
+      uploadedFile,
+      isTimeSeries,
       sendMessage,
-      formatTime
+      handleFileChange,
+      formatTime,
+      isTimeSeriesProxy,
+      fileInput
     };
   }
 });
@@ -187,6 +238,15 @@ export default defineComponent({
   font-size: 0.95rem;
 }
 
+.message-content a {
+  color: #4299e1;
+  text-decoration: none;
+}
+
+.message-content a:hover {
+  text-decoration: underline;
+}
+
 .message-time {
   font-size: 0.75rem;
   color: #64748b;
@@ -196,6 +256,7 @@ export default defineComponent({
 
 .message-input {
   display: flex;
+  flex-direction: column;
   padding: 1rem;
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
@@ -204,7 +265,52 @@ export default defineComponent({
   bottom: 0;
 }
 
-.message-input input {
+.input-options {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.time-series-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.file-upload-button {
+  padding: 0.5rem 1rem;
+  background: #e2e8f0;
+  color: #1e293b;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-upload-button:hover {
+  background: #cbd5e1;
+}
+
+.file-name {
+  font-size: 0.75rem;
+  color: #475569;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input-container {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.input-container input {
   flex: 1;
   padding: 0.875rem 1.25rem;
   background: #ffffff;
@@ -216,12 +322,12 @@ export default defineComponent({
   transition: all 0.2s ease;
 }
 
-.message-input input:focus {
+.input-container input:focus {
   border-color: #4299e1;
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
-.message-input button {
+.input-container button {
   padding: 0.875rem 1.5rem;
   background: #4299e1;
   color: white;
@@ -232,7 +338,7 @@ export default defineComponent({
   transition: all 0.2s ease;
 }
 
-.message-input button:hover {
+.input-container button:hover {
   background: #3182ce;
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(66, 153, 225, 0.3);

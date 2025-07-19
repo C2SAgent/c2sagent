@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # 前端开发服务器
+  frontend:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - .:/app  
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - NODE_ENV=development
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80" 
+      - "443:443" 
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf 
+    depends_on:
+      - frontend

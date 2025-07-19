@@ -1,36 +1,63 @@
-from sqlalchemy import create_engine, and_
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import and_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from typing import Type, Any, List, Optional, Dict, Union
+from typing import Type, Any, List, Optional, Dict, Union, Tuple
 from model.model_agent import Base  # 假设模型定义在models.py中
 
 class DatabaseManager:
     """
-    通用的数据库操作类，使用fetch前缀命名查询方法
+    通用的异步数据库操作类，使用fetch前缀命名查询方法
     """
     
     def __init__(self, db_url: str, echo: bool = False):
         """
-        初始化数据库操作类
+        初始化异步数据库操作类
         
         Args:
-            db_url: 数据库连接URL，例如: 'postgresql://user:password@localhost/dbname'
+            db_url: 数据库连接URL，必须以异步驱动开头，例如: 
+                'postgresql+asyncpg://user:password@localhost/dbname'
             echo: 是否输出SQL日志，默认为False
         """
-        self.engine = create_engine(db_url, echo=echo)
-        self.Session = sessionmaker(bind=self.engine)
-        Base.metadata.create_all(self.engine)
-
-    def _get_session(self):
+        # 确保使用正确的异步驱动前缀
+        if not db_url.startswith('postgresql+asyncpg://'):
+            raise ValueError("异步操作必须使用 'postgresql+asyncpg://' 驱动")
+        
+        self.engine = create_async_engine(
+            db_url,
+            echo=echo,
+            pool_size=20,          # 连接池大小
+            max_overflow=10,       # 最大溢出连接数
+            pool_pre_ping=True     # 连接前检查有效性
+        )
+        
+        self.Session = sessionmaker(
+            bind=self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False,  # 重要：异步会话需要关闭自动过期
+            autoflush=False
+        )
+        
+    async def _get_session(self) -> AsyncSession:
+        """获取一个新的数据库会话"""
+        return self.Session()
+    
+    def _get_session_sync(self):
         """获取一个新的数据库会话"""
         return self.Session()
 
-    def _close_session(self, session):
+    def _close_session_sync(self, session):
         """关闭数据库会话"""
         if session:
             session.close()
 
-    def fetch_one(self, model: Type[Base], **filters) -> Optional[Any]:
+    async def _close_session(self, session: AsyncSession):
+        """关闭数据库会话"""
+        if session:
+            await session.close()
+
+    async def fetch_one(self, model: Type[Base], **filters) -> Optional[Any]:
         """
         根据条件获取单个记录
         
@@ -41,17 +68,19 @@ class DatabaseManager:
         Returns:
             查询到的记录对象或None
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
-            return session.query(model).filter_by(**filters).first()
+            stmt = select(model).filter_by(**filters)
+            result = await session.execute(stmt)
+            return result.scalars().first()
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def fetch_all(self, model: Type[Base], 
-                 filters: Optional[Dict] = None,
-                 order_by: Optional[Union[str, List[str]]] = None,
-                 limit: Optional[int] = None,
-                 offset: Optional[int] = None) -> List[Any]:
+    async def fetch_all(self, model: Type[Base], 
+                       filters: Optional[Dict] = None,
+                       order_by: Optional[Union[str, List[str]]] = None,
+                       limit: Optional[int] = None,
+                       offset: Optional[int] = None) -> List[Any]:
         """
         获取多个记录，支持分页和排序
         
@@ -65,35 +94,36 @@ class DatabaseManager:
         Returns:
             查询到的记录列表
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
-            query = session.query(model)
+            stmt = select(model)
             
             if filters:
-                query = query.filter_by(**filters)
+                stmt = stmt.filter_by(**filters)
                 
             if order_by:
                 if isinstance(order_by, str):
-                    query = query.order_by(order_by)
+                    stmt = stmt.order_by(order_by)
                 else:
                     for field in order_by:
-                        query = query.order_by(field)
+                        stmt = stmt.order_by(field)
                         
             if limit:
-                query = query.limit(limit)
+                stmt = stmt.limit(limit)
                 
             if offset:
-                query = query.offset(offset)
+                stmt = stmt.offset(offset)
                 
-            return query.all()
+            result = await session.execute(stmt)
+            return result.scalars().all()
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def fetch_complex(self, model: Type[Base], 
-                     conditions: List[Any],
-                     order_by: Optional[Union[str, List[str]]] = None,
-                     limit: Optional[int] = None,
-                     offset: Optional[int] = None) -> List[Any]:
+    async def fetch_complex(self, model: Type[Base], 
+                           conditions: List[Any],
+                           order_by: Optional[Union[str, List[str]]] = None,
+                           limit: Optional[int] = None,
+                           offset: Optional[int] = None) -> List[Any]:
         """
         复杂查询，支持多条件组合
         
@@ -107,31 +137,32 @@ class DatabaseManager:
         Returns:
             查询到的记录列表
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
-            query = session.query(model)
+            stmt = select(model)
             
             if conditions:
-                query = query.filter(and_(*conditions))
+                stmt = stmt.filter(and_(*conditions))
                 
             if order_by:
                 if isinstance(order_by, str):
-                    query = query.order_by(order_by)
+                    stmt = stmt.order_by(order_by)
                 else:
                     for field in order_by:
-                        query = query.order_by(field)
+                        stmt = stmt.order_by(field)
                         
             if limit:
-                query = query.limit(limit)
+                stmt = stmt.limit(limit)
                 
             if offset:
-                query = query.offset(offset)
+                stmt = stmt.offset(offset)
                 
-            return query.all()
+            result = await session.execute(stmt)
+            return result.scalars().all()
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def insert(self, model: Type[Base], data: Dict[str, Any]) -> Any:
+    async def insert(self, model: Type[Base], data: Dict[str, Any]) -> Any:
         """
         插入一条新记录
         
@@ -142,20 +173,20 @@ class DatabaseManager:
         Returns:
             插入后的记录对象
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
             obj = model(**data)
             session.add(obj)
-            session.commit()
-            session.refresh(obj)
+            await session.commit()
+            await session.refresh(obj)
             return obj
         except SQLAlchemyError as e:
-            session.rollback()
+            await session.rollback()
             raise e
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def bulk_insert(self, model: Type[Base], data_list: List[Dict[str, Any]]) -> List[Any]:
+    async def bulk_insert(self, model: Type[Base], data_list: List[Dict[str, Any]]) -> List[Any]:
         """
         批量插入记录
         
@@ -166,21 +197,21 @@ class DatabaseManager:
         Returns:
             插入后的记录对象列表
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
             objects = [model(**data) for data in data_list]
-            session.bulk_save_objects(objects)
-            session.commit()
+            session.add_all(objects)
+            await session.commit()
             return objects
         except SQLAlchemyError as e:
-            session.rollback()
+            await session.rollback()
             raise e
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def update(self, model: Type[Base], 
-               filters: Dict[str, Any], 
-               update_data: Dict[str, Any]) -> int:
+    async def update(self, model: Type[Base], 
+                    filters: Dict[str, Any], 
+                    update_data: Dict[str, Any]) -> int:
         """
         更新记录
         
@@ -192,18 +223,25 @@ class DatabaseManager:
         Returns:
             更新的记录数
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
-            result = session.query(model).filter_by(**filters).update(update_data)
-            session.commit()
-            return result
+            stmt = select(model).filter_by(**filters)
+            result = await session.execute(stmt)
+            objects = result.scalars().all()
+            
+            for obj in objects:
+                for key, value in update_data.items():
+                    setattr(obj, key, value)
+            
+            await session.commit()
+            return len(objects)
         except SQLAlchemyError as e:
-            session.rollback()
+            await session.rollback()
             raise e
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def delete(self, model: Type[Base], **filters) -> int:
+    async def delete(self, model: Type[Base], **filters) -> int:
         """
         删除记录
         
@@ -214,20 +252,26 @@ class DatabaseManager:
         Returns:
             删除的记录数
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
-            result = session.query(model).filter_by(**filters).delete()
-            session.commit()
-            return result
+            stmt = select(model).filter_by(**filters)
+            result = await session.execute(stmt)
+            objects = result.scalars().all()
+            
+            for obj in objects:
+                await session.delete(obj)
+            
+            await session.commit()
+            return len(objects)
         except SQLAlchemyError as e:
-            session.rollback()
+            await session.rollback()
             raise e
         finally:
-            self._close_session(session)
+            await self._close_session(session)
 
-    def fetch_or_insert(self, model: Type[Base], 
-                       filters: Dict[str, Any], 
-                       defaults: Optional[Dict[str, Any]] = None) -> tuple:
+    async def fetch_or_insert(self, model: Type[Base], 
+                            filters: Dict[str, Any], 
+                            defaults: Optional[Dict[str, Any]] = None) -> Tuple[Any, bool]:
         """
         查询或插入记录
         
@@ -239,20 +283,40 @@ class DatabaseManager:
         Returns:
             (object, created) 元组，object是查询或插入的对象，created表示是否是新插入的
         """
-        session = self._get_session()
+        session = await self._get_session()
         try:
-            obj = session.query(model).filter_by(**filters).first()
+            stmt = select(model).filter_by(**filters)
+            result = await session.execute(stmt)
+            obj = result.scalars().first()
+            
             if obj:
                 return obj, False
             
             create_data = {**filters, **(defaults or {})}
             obj = model(**create_data)
             session.add(obj)
-            session.commit()
-            session.refresh(obj)
+            await session.commit()
+            await session.refresh(obj)
             return obj, True
         except SQLAlchemyError as e:
-            session.rollback()
+            await session.rollback()
             raise e
         finally:
-            self._close_session(session)
+            await self._close_session(session)
+            
+    def fetch_one_sync(self, model: Type[Base], **filters) -> Optional[Any]:
+        """
+        根据条件获取单个记录
+        
+        Args:
+            model: SQLAlchemy模型类
+            filters: 查询条件，例如 id=1, name='test'
+            
+        Returns:
+            查询到的记录对象或None
+        """
+        session = self._get_session_sync()
+        try:
+            return session.query(model).filter_by(**filters).first()
+        finally:
+            self._close_session_sync(session)

@@ -1,3 +1,4 @@
+import os
 from typing import Annotated, Any, Dict
 from fastapi import Body, FastAPI, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
@@ -12,11 +13,15 @@ from src_mcp.mcp_server.manager_server_tool import EnhancedServerToolManager
 from .database import engine, get_db
 from sqlalchemy.orm import Session
 
-db = DatabaseManager('postgresql://postgres:postgre@localhost/manager_agent')
+from api.apps.agent.config import settings
+DATABASE_URL = settings.DATABASE_URL
+db = DatabaseManager(DATABASE_URL)
 
-models.Base.metadata.create_all(bind=engine)
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
 
-app = FastAPI()
+app = FastAPI(on_startup=[init_db])
 
 @app.post("/create", response_model=BaseResponse)
 async def do_mcp_create(
@@ -24,7 +29,7 @@ async def do_mcp_create(
     name: str = Body(...),
     current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ): 
-    db.insert(models.McpServer, {
+    await db.insert(models.McpServer, {
         "name": name,
         "url": "",
         "user_id": current_user.id
@@ -36,7 +41,7 @@ async def do_mcp_create(
 async def do_mcp_list(
     current_user: models.UserConfig = Depends(auth.get_current_active_user)
 ):
-    mcps = db.fetch_all(models.McpServer, {"user_id": current_user.id})
+    mcps = await db.fetch_all(models.McpServer, {"user_id": current_user.id})
     print("==========================================do_mcp_list")
     print(current_user.id)
     print(mcps)

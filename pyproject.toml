@@ -5,12 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "asyncpg>=0.30.0",
+    "motor>=3.7.1",
     "pymongo>=4.13.2",
-]
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-default = true
-dependencies = [
     "annotated-types==0.7.0",
     "anyio==4.9.0",
     "certifi==2025.4.26",
@@ -59,5 +56,18 @@ dependencies = [
     "asyncclick>=8.1.8",
     "a2a-sdk>=0.2.10",
     "jinja2>=3.1.6",
-    "pymongo>=4.13.2",
+    "paddleocr>=3.1.0",
+    "paddlepaddle>=3.1.0",
+    "nest-asyncio>=1.6.0",
+    "aiopg>=1.4.0",
+    "mindsdb-sdk>=3.4.4",
+    "mindsdb-sql-parser>=0.0.2",
+    "docstring-parser>=0.16",
+    "pandas>=2.3.1",
+    "nixtla>=0.6.6",
+    "redis>=6.2.0",
+    "tos>=2.8.4",
+    "matplotlib>=3.10.3",
 ]
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"

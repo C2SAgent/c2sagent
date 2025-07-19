@@ -9,6 +9,8 @@ from model.api_model.model_auth import TokenData
 from model.model_agent import UserConfig
 from .auth import oauth2_scheme
 from .database import SessionLocal, get_db
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 def token_required(func):
     """装饰器：验证 JWT Token 是否有效"""
@@ -50,7 +52,7 @@ def token_required(func):
     return wrapper
 
 async def get_token_data(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenData:
-    """解析并验证JWT Token"""
+    """异步解析并验证JWT Token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="无法验证凭据",
@@ -68,15 +70,21 @@ async def get_token_data(token: Annotated[str, Depends(oauth2_scheme)]) -> Token
 async def verify_token(
     request: Request,
     token_data: Annotated[TokenData, Depends(get_token_data)],
-    db: Annotated[Session, Depends(get_db)]
+    db: Annotated[AsyncSession, Depends(get_db)]  # 改为 AsyncSession
 ) -> UserConfig:
-    """全局依赖：验证Token有效性并检查用户状态"""
-    user = db.query(UserConfig).filter(UserConfig.name == token_data.username).first()
-    # if not user or not user.is_active:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="用户不存在或未激活"
-    #     )
+    """全局依赖：异步验证Token有效性并检查用户状态"""
+    # 异步查询用户
+    result = await db.execute(
+        select(UserConfig).where(UserConfig.name == token_data.username)
+    )
+    user = result.scalars().first()
+    
+    # 检查用户状态（根据需要取消注释）
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户不存在或未激活"
+        )
     
     # 检查最后活动时间（30分钟无操作失效）
     try:
