@@ -9,10 +9,12 @@ from src_mcp.mcp_client.dependencies import chat_session_depends
 
 app = FastAPI()
 
+
 @app.post(
-    "/ask_mcp", summary="与mcp agent进行对话",
+    "/ask_mcp",
+    summary="与mcp agent进行对话",
     response_model=BaseResponse,
-    response_class=JSONResponse  # 确保返回JSON格式
+    response_class=JSONResponse,  # 确保返回JSON格式
 )
 async def answer_with_server_code(
     request: Request,
@@ -21,25 +23,23 @@ async def answer_with_server_code(
     agent_id: int = Body(..., description="Agent ID"),
     chat_session: ChatSession = chat_session_depends,
 ):
-    print("=============================================answer_with_server_code")
-    print(mcp_server_id)
-    # request_data = await request.json()
-    # query = request_data.get('query')
-    print(query)
     try:
         messages = [{"role": "user", "content": query}]
-        answer = await chat_session._get_agent_response(messages, mcp_server_id, agent_id)
+        answer = await chat_session._get_agent_response(
+            messages, mcp_server_id, agent_id
+        )
         result = BaseResponse(code=200, msg="success", data=answer)
         return result
     except Exception as e:
         logging.error(f"Chat request failed: {e}", exc_info=True)
         return BaseResponse(code=500, msg="请求失败")
 
+
 # TODO: 待完成流式mcp
 @app.post(
     "/ask_mcp_streaming",
     summary="与mcp agent进行对话(流式)",
-    response_class=BaseResponse  # 改为流式响应
+    response_class=BaseResponse,  # 改为流式响应
 )
 async def answer_with_server_code_streaming(
     request: Request,
@@ -48,13 +48,11 @@ async def answer_with_server_code_streaming(
     agent_id: int = Body(..., description="Agent ID"),
     chat_session: ChatSession = chat_session_depends,
 ):
-    print("=============================================answer_with_server_code")
-    print(mcp_server_id)
-    print(query)
-
     try:
         messages = [{"role": "user", "content": query}]
-        answer = await chat_session._get_agent_response(messages, mcp_server_id, agent_id)
+        answer = await chat_session._get_agent_response(
+            messages, mcp_server_id, agent_id
+        )
         result = BaseResponse(code=200, msg="success", data=answer)
         return result
     except Exception as e:

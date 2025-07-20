@@ -11,23 +11,27 @@ from api.apps.agent.config import settings
 
 DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
 db = DatabaseManager(DATABASE_SYNC_URL)
+
+
 class AgentRequest(BaseModel):
-    host: str = 'localhost'
+    host: str = "localhost"
     port: int = 10001
-    mode: Literal['completion', 'streaming'] = 'streaming'
+    mode: Literal["completion", "streaming"] = "streaming"
     user_id: str
     question: str
+
 
 class AgentResponse(BaseModel):
     result: str
 
+
 @app.post("/ask-agent", response_model=AgentResponse)
 async def ask_agent(request: AgentRequest):
     """Endpoint to interact with the Agent.
-    
+
     Args:
         request (AgentRequest): Contains all the parameters needed to query the agent.
-        
+
     Returns:
         AgentResponse: The response from the agent.
     """
@@ -40,22 +44,24 @@ async def ask_agent(request: AgentRequest):
             mode=request.mode,
             token_stream_callback=None,
             agent_urls=[
-                f'http://{request.host}:{request.port}/{agent_index}'
+                f"http://{request.host}:{request.port}/{agent_index}"
                 for agent_index in agent_find.id
             ],
-            user_id=request.user_id
+            user_id=request.user_id,
         )
 
-        if request.mode == 'streaming':
+        if request.mode == "streaming":
             result = await agent.stream(request.question)
         else:
             result = await agent.complete(request.question)
 
         return AgentResponse(result=result)
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -68,6 +68,8 @@ dependencies = [
     "redis>=6.2.0",
     "tos>=2.8.4",
     "matplotlib>=3.10.3",
+    "pre-commit>=4.2.0",
+    "black>=25.1.0",
 ]
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"

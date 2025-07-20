@@ -5,11 +5,9 @@ from core.db.base import PostgreSQLCRUD
 db = PostgreSQLCRUD("postgresql://ChenXAn:ChenXAn@localhost:5432/manager_agent")
 
 # 插入数据
-new_agent = db.insert(AgentCard, {
-    "name": "AI Assistant",
-    "description": "智能助手",
-    "streaming": True
-})
+new_agent = db.insert(
+    AgentCard, {"name": "AI Assistant", "description": "智能助手", "streaming": True}
+)
 
 # 查询单条
 agent = db.fetch_one(AgentCard, {"name": "AI Assistant"})
