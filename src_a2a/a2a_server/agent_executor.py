@@ -18,25 +18,28 @@ from api.apps.agent.config import settings
 DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
 db = DatabaseManager(DATABASE_SYNC_URL)
 
+
 class CoreAgentExecutor(AgentExecutor):
     """Test AgentProxy Implementation."""
 
     def __init__(self, agent_index: int = None):
         self.agent_index = agent_index
-        print("============================================")
-        print(self.agent_index)
+
         self.agent_find = db.fetch_one(AgentCard, id=self.agent_index)
 
-        self.mcp_server_id = db.fetch_one(AgentCardAndMcpServer, agent_card_id=agent_index).mcp_server_id
+        self.mcp_server_id = db.fetch_one(
+            AgentCardAndMcpServer, agent_card_id=agent_index
+        ).mcp_server_id
         self.agent = Agent(
             mode="complete",
             token_stream_callback=print,
-            mcp_url=f'http://localhost:8000/app_mcp/ask_mcp',
+            mcp_url=f"http://localhost:8000/app_mcp/ask_mcp",
             agent_index=self.agent_index,
-            mcp_server_id=self.mcp_server_id
+            mcp_server_id=self.mcp_server_id,
         )
+
     # TODO: 待完成
-    #  
+    #
     @override
     async def execute(
         self,
@@ -44,12 +47,10 @@ class CoreAgentExecutor(AgentExecutor):
         event_queue: EventQueue,
     ) -> None:
         query = context.get_user_input()
-        print("===========================================================query")
-        print(query)
         task = context.current_task
 
         if not context.message:
-            raise Exception('No message provided')
+            raise Exception("No message provided")
 
         if not task:
             task = new_task(context.message)
@@ -147,9 +148,6 @@ class CoreAgentExecutor(AgentExecutor):
     #                 )
     #             )
 
-
     @override
-    async def cancel(
-        self, context: RequestContext, event_queue: EventQueue
-    ) -> None:
-        raise Exception('cancel not supported')
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        raise Exception("cancel not supported")

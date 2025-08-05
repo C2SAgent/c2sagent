@@ -2,18 +2,19 @@ import aiohttp
 import asyncio
 import json
 
+
 async def register_user():
     url = "http://localhost:8000/auth/register"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer your_token_here"  # 替换为实际token
+        "Authorization": "Bearer your_token_here",  # 替换为实际token
     }
     data = {
         "name": "test88",
         "password": "securepassword123",
         "core_llm_name": "default",
         "core_llm_url": "http://example.com",
-        "core_llm_key": "12345"
+        "core_llm_key": "12345",
     }
 
     try:
@@ -36,6 +37,7 @@ async def register_user():
         print("Invalid JSON response")
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
+
 
 # 运行异步函数
 asyncio.run(register_user())

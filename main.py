@@ -18,6 +18,9 @@ from api.apps.agent.app_a2a import app as app_a2a
 from api.apps.agent.app_mcp import app as app_mcp
 from api.apps.agent.app_history import app as app_history
 
+
+from api.apps.media.bilibili import app as media_bilibili
+
 from src_a2a.a2a_server import main as main_a2a
 from src_mcp.mcp_server.server.mcp_server import main as main_mcp
 
@@ -26,6 +29,7 @@ load_dotenv()
 
 # 创建主应用
 app = FastAPI(title="C2SAgent", lifespan=lifespan)
+media = FastAPI(title="Media", lifespan=lifespan)
 
 # 静态文件位置
 static_dir = os.path.dirname(os.path.abspath(__file__))
@@ -74,6 +78,11 @@ app.mount("/app_a2a", app_a2a)
 app.mount("/app_mcp", app_mcp)
 app.mount("/app_history", app_history)
 
+# 挂载媒体子应用
+media.mount("/media", media_bilibili)
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(media, host="0.0.0.0", port=8001)

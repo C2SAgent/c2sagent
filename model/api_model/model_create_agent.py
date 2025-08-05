@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
+
 class AgentCard(BaseModel):
     id: int
     name: str
@@ -14,9 +15,11 @@ class AgentCard(BaseModel):
     llm_url: str
     llm_key: str
 
+
 class McpServer(BaseModel):
     id: int
     name: str
+
 
 class AgentCardAndMcpServer(BaseModel):
     agent_card_id: int

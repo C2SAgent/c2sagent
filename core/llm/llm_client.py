@@ -10,6 +10,7 @@ from mcp.types import TextContent, Tool
 from openai import AsyncOpenAI
 import datetime
 
+
 class LLMClient:
     def __init__(self, llm_url: str, api_key: str) -> None:
         self.api_key: str = api_key
@@ -23,9 +24,6 @@ class LLMClient:
     ) -> AsyncGenerator[str, None]:
         self.llm_url = llm_url
         self.api_key = api_key
-        print("=====================================================llm")
-        print(self.llm_url)
-        print(self.api_key)
         self.client: AsyncOpenAI = AsyncOpenAI(
             api_key=self.api_key, base_url=self.llm_url
         )
@@ -41,15 +39,15 @@ class LLMClient:
             if delta.content:
                 yield delta.content
 
-    async def get_response(self, messages: list[dict[str, str]], llm_url=None, api_key=None) -> str:
-        print("================================================执行到了get_response的入口")
+    async def get_response(
+        self, messages: list[dict[str, str]], llm_url=None, api_key=None
+    ) -> str:
         if llm_url:
             self.llm_url = llm_url
             self.api_key = api_key
             self.client: AsyncOpenAI = AsyncOpenAI(
                 api_key=self.api_key, base_url=self.llm_url
             )
-        print("================================================执行到了get_response的response")
         response = await self.client.chat.completions.create(
             messages=messages,
             stream=False,
@@ -58,6 +56,7 @@ class LLMClient:
             max_tokens=8192,
         )
         logging.info(f"Thinking: {response.choices[0].message.reasoning_content}")
-        logging.info(f"AnswerContent=====================: {response.choices[0].message.content}")
+        logging.info(
+            f"AnswerContent=====================: {response.choices[0].message.content}"
+        )
         return response.choices[0].message.content
-

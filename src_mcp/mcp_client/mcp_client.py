@@ -21,6 +21,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 print(DATABASE_URL)
 db = DatabaseManager(DATABASE_URL)
 
+
 def load_mcp_config(file_path: str) -> dict[str, any]:
     with open(file_path, "r") as f:
         return json.load(f)
@@ -45,7 +46,7 @@ class ChatSession:
                 logging.info(f"Extracted JSON content: {json_content}")
             else:
                 json_content = llm_response
-            
+
             tool_calls = json.loads(json_content)
             results = ""
             for tool_call in tool_calls:
@@ -53,10 +54,10 @@ class ChatSession:
                     logging.info(f"Executing tool: {tool_call['tool']}")
                     logging.info(f"With arguments: {tool_call['arguments']}")
                     mcp_config = {
-                        "mcpServers":{
-                            f"{self.server_name}":{
+                        "mcpServers": {
+                            f"{self.server_name}": {
                                 "command": "url",
-                                "url": f"http://localhost:3000/mcp/{mcp_server_id}"
+                                "url": f"http://localhost:3000/mcp/{mcp_server_id}",
                             }
                         }
                     }
@@ -71,9 +72,11 @@ class ChatSession:
                             try:
                                 result: list = await server.call_tool(
                                     tool_call["tool"],
-                                    tool_call["arguments"]
-                                    if len(tool_call["arguments"]) > 0
-                                    else None,
+                                    (
+                                        tool_call["arguments"]
+                                        if len(tool_call["arguments"]) > 0
+                                        else None
+                                    ),
                                 )
                                 logging.info(
                                     f"{tool_call['tool']} execution result: {result}"
@@ -123,10 +126,10 @@ class ChatSession:
         self.server_name = mcp_server_find.name
 
         mcp_config = {
-            "mcpServers":{
-                f"{self.server_name}":{
+            "mcpServers": {
+                f"{self.server_name}": {
                     "command": "url",
-                    "url": f"http://localhost:3000/mcp/{mcp_server_id}"
+                    "url": f"http://localhost:3000/mcp/{mcp_server_id}",
                 }
             }
         }
@@ -175,33 +178,39 @@ class ChatSession:
             "5. Avoid simply repeating the raw data\n\n"
             "Please use only the tools that are explicitly defined above."
         )
-        messages = [{"role": "system", "content": system_message}]+messages
-        llm_response = await self.llm_client.get_response(messages, self.llm_client.llm_url, self.llm_client.api_key)
+        messages = [{"role": "system", "content": system_message}] + messages
+        llm_response = await self.llm_client.get_response(
+            messages, self.llm_client.llm_url, self.llm_client.api_key
+        )
         logging.info(f"\nAssistant: {llm_response}")
 
         result = await self.process_llm_response(llm_response, mcp_server_id)
         while result != llm_response:
             messages.append({"role": "assistant", "content": llm_response})
             messages.append({"role": "user", "content": result})
-            llm_response = await self.llm_client.get_response(messages, self.llm_client.llm_url, self.llm_client.api_key)
+            llm_response = await self.llm_client.get_response(
+                messages, self.llm_client.llm_url, self.llm_client.api_key
+            )
             logging.info(f"\nAssistant: {llm_response}")
             result = await self.process_llm_response(llm_response, mcp_server_id)
         return result
 
-    async def get_agent_response_stream(self, messages, mcp_server_id, agent_id) -> AsyncGenerator[str, None]:
+    async def get_agent_response_stream(
+        self, messages, mcp_server_id, agent_id
+    ) -> AsyncGenerator[str, None]:
         # 异步查询数据库
         agent_find = await db.fetch_one(AgentCard, id=agent_id)
         mcp_server_find = await db.fetch_one(McpServer, id=mcp_server_id)
-        
+
         self.llm_client.llm_url = agent_find.llm_url
         self.llm_client.api_key = agent_find.llm_key
         self.server_name = mcp_server_find.name
 
         mcp_config = {
-            "mcpServers":{
-                f"{self.server_name}":{
+            "mcpServers": {
+                f"{self.server_name}": {
                     "command": "url",
-                    "url": f"http://localhost:3000/mcp/{mcp_server_id}"
+                    "url": f"http://localhost:3000/mcp/{mcp_server_id}",
                 }
             }
         }
@@ -209,7 +218,7 @@ class ChatSession:
             server_name: parse_mcp_client(config)
             for server_name, config in mcp_config["mcpServers"].items()
         }
-        
+
         async with mcp_servers[f"{self.server_name}"] as server:
             tools = await server.list_tools()
             tools_description = f"Service name: {self.server_name}\n" + "\n".join(
@@ -217,11 +226,12 @@ class ChatSession:
             )
 
         system_message = f"""..."""  # 同_get_agent_response
-        
+
         messages = [{"role": "system", "content": system_message}] + messages
-        
+
         async for chunk in self.llm_client.get_stream_response(messages, mcp_server_id):
             yield chunk
+
 
 def parse_mcp_client(config: dict[str, any]):
     command = shutil.which("npx") if config["command"] == "npx" else config["command"]

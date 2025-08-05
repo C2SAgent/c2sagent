@@ -6,7 +6,7 @@ services:
     image: node:18
     working_dir: /app
     volumes:
-      - .:/app  
+      - .:/app
     ports:
       - "5173:5173"
     command: sh -c "npm install && npm run dev"
@@ -17,9 +17,9 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80" 
-      - "443:443" 
+      - "8080:80"
+      - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf 
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - frontend

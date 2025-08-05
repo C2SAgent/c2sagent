@@ -5,14 +5,12 @@ import json
 url = "http://localhost:8000/chat/ask-agent"
 
 # Set headers
-headers = {
-    "Content-Type": "application/json"
-}
+headers = {"Content-Type": "application/json"}
 
 try:
     # Make the POST request
     response = requests.get(url, headers=headers, params={"question": "查一下今天的万年历"})
-    
+
     # Check if the request was successful
     if response.status_code == 200:
         print("Response from agent:", response.json())
@@ -20,7 +18,7 @@ try:
         print(f"Error: {response.status_code} - {response.text}")
 except requests.exceptions.RequestException as e:
     print(f"Request failed: {e}")
-    
+
 # url = "http://localhost:8000/mcp_client/chat"
 
 # # Set headers
