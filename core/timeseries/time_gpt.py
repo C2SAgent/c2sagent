@@ -3,14 +3,12 @@ from nixtla import NixtlaClient
 from pandas import DataFrame
 import pandas as pd
 
-# from ..config import settings
+from ..config import settings
 
 
 class TimeGPT:
     def __init__(self):
-        self.nixtla_client = NixtlaClient(
-            api_key="nixak-udxfelH7ifcZqaWVJiY2PSIg0drPUkIFOiKX4fzjVm0RS9fKUilMqc6T1MTE7Wuf86TCBRC1la0YMIB2"
-        )
+        self.nixtla_client = NixtlaClient(api_key=settings.TimeSERIES_KEY)
 
     # 预测有问题
     def predict(

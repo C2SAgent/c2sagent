@@ -37,7 +37,7 @@
           时序预测分析
         </label>
         <label class="file-upload-button">
-          <input type="file" @change="handleFileChange" style="display: none;" ref="fileInput" />
+          <input type="file" @change="handleFileChange" accept=".csv, .txt" style="display: none;" ref="fileInput" />
           上传文件
           <span v-if="uploadedFile" class="file-name">{{ uploadedFile.name }}</span>
         </label>
@@ -87,7 +87,7 @@ export default defineComponent({
     watch(() => props.isTimeSeries, (newVal) => {
       emit('update:isTimeSeries', newVal);
     });
-    
+
     const fileInput = ref<HTMLInputElement | null>(null);
 
     const isTimeSeriesProxy = computed({
@@ -115,17 +115,17 @@ export default defineComponent({
     };
 
     const formatTime = (datetime: Date | string) => {
-      const date = typeof datetime === 'string' 
-        ? new Date(datetime.replace(' ', 'T')) 
+      const date = typeof datetime === 'string'
+        ? new Date(datetime.replace(' ', 'T'))
         : datetime;
-      
+
       if (isNaN(date.getTime())) {
         console.warn('Invalid date:', datetime);
         return '--:--';
       }
-      
-      return date.toLocaleTimeString([], { 
-        hour: '2-digit', 
+
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
         minute: '2-digit',
         hour12: false
       });

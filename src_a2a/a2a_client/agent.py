@@ -220,7 +220,6 @@ class Agent:
             )
 
             return send_response.root.result.status.message.parts[0].root.text
-
             # return send_response
 
     async def completion(self, question: str):
@@ -237,6 +236,7 @@ class Agent:
         agents_registry, agent_prompt = await self.get_agents()
         response = await self.decide(question, agent_prompt, agent_answers)
         agents = self.extract_agents(response)
+
         if agents:
             for agent in agents:
                 agent_card = agents_registry[agent["name"]]

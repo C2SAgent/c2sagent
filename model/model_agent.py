@@ -45,6 +45,20 @@ class UserAndLLM(Base):
     llm_config = relationship("LLMConfig", back_populates="user_associations")
 
 
+class UserAndMedia(Base):
+    __tablename__ = "user_config_and_media"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    cover_url = Column(String(255))
+    user_id = Column(Integer, ForeignKey("user_config.id"), nullable=False)
+    sessdata = Column(String(255))
+    jct = Column(String(255))
+
+    # 关系定义
+    user_config = relationship("UserConfig", back_populates="media_associations")
+
+
 class AgentCard(Base):
     __tablename__ = "agent_card"
 
