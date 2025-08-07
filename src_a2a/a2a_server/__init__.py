@@ -20,6 +20,7 @@ from starlette.routing import Route, Router, Mount
 from starlette.requests import Request
 from typing import Any, Callable, Dict, List, Optional
 import json
+from a2a.server.request_handlers.jsonrpc_handler import JSONRPCHandler
 
 from core.db.base_sync import DatabaseManager
 from model.model_agent import (
@@ -77,7 +78,7 @@ class DynamicContextBuilder:
 class DatabaseA2AStarletteApplication(A2AStarletteApplication):
     """最终解决方案：确保正确处理客户端请求路径"""
 
-    def __init__(self, db: Any, http_handler: RequestHandler):
+    def __init__(self, db: Any, http_handler: DefaultRequestHandler):
         self.db = db
         # 使用临时卡片初始化
         temp_card = AgentCard(
@@ -95,7 +96,14 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
         )
 
         self.task_store = InMemoryTaskStore()
-        super().__init__(agent_card=temp_card, http_handler=http_handler)
+
+        self.agent_card = temp_card
+        self.http_handler = http_handler
+        self.handler = JSONRPCHandler(
+            agent_card=self.agent_card, request_handler=self.http_handler
+        )
+
+        # super().__init__(agent_card=temp_card, http_handler=self.http_handler)
 
         # 创建子路由器处理特定agent路径
         self.agent_router = Router()
@@ -177,11 +185,11 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
 
         try:
             agent_index = request.path_params.get("agent_index")
-            # task_store = InMemoryTaskStore()
-            self.http_handler = DefaultRequestHandler(
-                agent_executor=CoreAgentExecutor(agent_index=agent_index),
-                task_store=self.task_store,
+            self.task_store = InMemoryTaskStore()
+            self.http_handler.agent_executor = CoreAgentExecutor(
+                agent_index=agent_index
             )
+
             if not agent_index:
                 return JSONResponse(
                     {"error": "Missing agent_index in path parameters"}, status_code=400
@@ -194,6 +202,8 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
             # 设置动态卡片
             try:
                 self.agent_card = self._get_agent_card_from_db(agent_index, request)
+                self.handler.agent_card.name = self.agent_card.name
+                self.handler.agent_card.description = self.agent_card.description
             except Exception as e:
                 return JSONResponse(
                     {"error": f"Failed to get agent card: {str(e)}"}, status_code=404
@@ -205,6 +215,9 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
             )
 
             # 处理请求
+            # self.handler.request_handler = JSONRPCHandler(
+            #     agent_card=self.agent_card, request_handler=self.http_handler
+            # )
             response = await self._handle_requests(request)
             return response
         except Exception as e:

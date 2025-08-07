@@ -154,17 +154,23 @@ async def stream_ask_a2a(
     async def event_stream():
         await mongo.connect()
         try:
+            nonlocal session_id
             predictor = TimeGPT()
+            print("==========================predictor==========================")
+            print(current_user.id)
+            print(session_id)
             messages_find = await mongo.get_session_by_ids(
                 str(current_user.id), session_id
             )
+            print("==========================messages_find==========================")
+
             messages = messages_find["messages"]
             agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
             if not agent_finds:
                 raise HTTPException(
                     status_code=404, detail="Agent not found for this user"
                 )
-
+            print(agent_finds)
             agent = Agent(
                 mode="complete",
                 token_stream_callback=None,
@@ -209,7 +215,9 @@ async def stream_ask_a2a(
                         {"role": "user", "content": question},
                     ]
                     params_response = await llm_client.get_response(
-                        messages=message_user
+                        messages=message_user,
+                        llm_url=core_llm_url,
+                        api_key=core_llm_key,
                     )
                     match_params = re.search(r"({.*?})", params_response, re.DOTALL)
                     if not match_params:
@@ -284,8 +292,9 @@ async def stream_ask_a2a(
                     yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
             else:
+                print("=============================================normal")
                 result = await agent.completion(
-                    f"这是用户的id: \n{current_user.id}\n"
+                    f"这是user_id: \n{current_user.id}\n"
                     + f"这是历史对话消息：\n{messages}\n"
                     + f"这是用户的当前消息：\n{question}\n"
                     + "如果历史信息没有用处，以及用户没有明确意图时，您只需要正常回答即可"

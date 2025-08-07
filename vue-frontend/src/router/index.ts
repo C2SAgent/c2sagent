@@ -57,6 +57,12 @@ const router = createRouter({
       name: 'mcp-tools',
       component: () => import('@/views/Mcp/Tool.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/media/list',
+      name: 'media-list',
+      component: () => import('@/views/Media/List.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
@@ -68,7 +74,7 @@ router.beforeEach(async (to) => {
   }
 
   const authStore = useAuthStore()
-  
+
   // 其他页面才需要初始化检查
   if (!authStore.isInitialized) {
     await authStore.init()
@@ -83,7 +89,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    return { 
+    return {
       name: 'home',
       replace: true
     }

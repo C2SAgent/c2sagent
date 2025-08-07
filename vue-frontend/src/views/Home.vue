@@ -52,7 +52,7 @@ export default defineComponent({
       if (newId) {
         try {
           const freshData = await HistoryApi.load(newId);
-          sessions.value = sessions.value.map(s => 
+          sessions.value = sessions.value.map(s =>
             s.session_id === newId ? freshData : s
           );
           activeSession.value = freshData;
@@ -90,15 +90,15 @@ const sendMessage = async (sessionId: string, content: string) => {
     timestamp: new Date()
   };
   session.messages.push(userMessage);
-  
+
   isWaiting.value = true;
-  
+
   try {
     // 获取流式响应
     const stream = await AgentApi.askAgentStreaming(
-      sessionId, 
-      content, 
-      isTimeSeries.value, 
+      sessionId,
+      content,
+      isTimeSeries.value,
       uploadedFile.value
     );
 
@@ -110,18 +110,18 @@ const sendMessage = async (sessionId: string, content: string) => {
     while (!done) {
       const { value, done: streamDone } = await reader.read();
       done = streamDone;
-      
+
       if (value) {
         // 处理流数据
         const textDecoder = new TextDecoder();
         const chunk = textDecoder.decode(value);
         const lines = chunk.split('\n\n').filter(line => line.trim());
-        
+
         for (const line of lines) {
           try {
             const parsed = JSON.parse(line);
             const { event, data } = parsed;
-            
+
             if (event === 'text') {
               if (!botMessage) {
                 botMessage = {
@@ -189,7 +189,10 @@ const sendMessage = async (sessionId: string, content: string) => {
           router.push('/agent/list')
           break
         case 'mcp':
-          router.push('/mcp/list') 
+          router.push('/mcp/list')
+          break
+        case 'media':
+          router.push('/media/list')
           break
         case 'logout':
           router.push('/logout')

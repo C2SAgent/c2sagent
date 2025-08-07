@@ -1,5 +1,5 @@
 <template>
-  <div class="mcp-list-container">
+  <div class="media-list-container">
     <div class="header-section">
       <h2 class="page-title">媒体管理</h2>
     </div>
@@ -9,7 +9,7 @@
       <span>加载媒体中...</span>
     </div>
 
-    <div v-else class="mcp-table">
+    <div v-else class="media-table">
       <table>
         <thead>
           <tr>
@@ -18,18 +18,18 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="mcp in mcps" :key="mcp.id">
-            <td>{{ mcp.name }}</td>
+          <tr v-for="media in medias" :key="media.id">
+            <td>{{ media.name }}</td>
             <td>
               <router-link
-                :to="`/mcp/${mcp.id}/tools`"
+                :to="`/media/${media.id}/details`"
                 class="manage-link"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path>
                   <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon>
                 </svg>
-                管理工具
+                管理媒体
               </router-link>
             </td>
           </tr>
@@ -41,15 +41,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { McpApi } from '@/api/mcp'
+import { MediaApi } from '@/api/media'
 
 const loading = ref(true)
-const mcps = ref<any[]>([])
+const medias = ref<any[]>([])
 
 onMounted(async () => {
   try {
-    const res = await McpApi.list()
-    mcps.value = res.data.data
+    const res = await MediaApi.list()
+    medias.value = res.data.data
   } finally {
     loading.value = false
   }
@@ -57,7 +57,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.mcp-list-container {
+.media-list-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
@@ -126,7 +126,7 @@ onMounted(async () => {
   to { transform: rotate(360deg); }
 }
 
-.mcp-table {
+.media-table {
   width: 100%;
   overflow-x: auto;
 }

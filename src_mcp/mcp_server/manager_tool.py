@@ -32,7 +32,8 @@ async def call_api_tool(name: str, arguments: dict) -> str:
 
         if method == "GET":
             request_params = {}
-            request_params["key"] = handler["key"]
+            if "key" in handler and handler["key"]:
+                request_params["key"] = handler["key"]
             request_params.update(arguments)
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=request_params) as response:
@@ -40,10 +41,11 @@ async def call_api_tool(name: str, arguments: dict) -> str:
 
         if method == "POST":
             request_params = {}
-            request_params["key"] = handler["key"]
+            if "key" in handler and handler["key"]:
+                request_params["key"] = handler["key"]
             request_params.update(arguments)
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, params=request_params) as response:
+                async with session.post(url, json=request_params) as response:
                     return await response.json()
 
         raise ValueError(f"Unsupported HTTP method: {method}")

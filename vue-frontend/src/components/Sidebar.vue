@@ -22,6 +22,9 @@
       <button @click="emitNavigation('mcp')">
         <span>⚙️</span> 管理我的Mcp
       </button>
+      <button @click="emitNavigation('media')">
+        <span>⚙️</span> 管理我的Meida
+      </button>
       <button @click="emitNavigation('logout')">
         <span>🚪</span> 退出登录
       </button>
@@ -138,7 +141,7 @@ export default defineComponent({
 
 .chat-list {
   overflow-y: auto;
-  pointer-events: auto; 
+  pointer-events: auto;
   height: calc(100% - 5rem);
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #ffffff;

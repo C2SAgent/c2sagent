@@ -4,6 +4,10 @@ from typing import AsyncGenerator
 import aiohttp
 
 
+async def call_default_mcp() -> str:
+    pass
+
+
 async def call_mcp_client(url: str, query: str, agent_index, mcp_server_id) -> str:
     """Call an MCP Client with the given URL and query.
 

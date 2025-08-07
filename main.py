@@ -1,3 +1,4 @@
+from multiprocessing import Process
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -8,6 +9,7 @@ from fastapi.openapi.docs import (
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 from src_mcp.mcp_client import lifespan
 
@@ -19,10 +21,7 @@ from api.apps.agent.app_mcp import app as app_mcp
 from api.apps.agent.app_history import app as app_history
 
 
-from api.apps.media.bilibili import app as media_bilibili
-
-from src_a2a.a2a_server import main as main_a2a
-from src_mcp.mcp_server.server.mcp_server import main as main_mcp
+from api.media.bilibili import app as media_bilibili
 
 load_dotenv()
 
@@ -79,10 +78,17 @@ app.mount("/app_mcp", app_mcp)
 app.mount("/app_history", app_history)
 
 # 挂载媒体子应用
-media.mount("/media", media_bilibili)
+app.mount("/media", media_bilibili)
+
+
+def run_app():
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    uvicorn.run(media, host="0.0.0.0", port=8001)
+    # app_process = Process(target=run_app)
+
+    # app_process.start()
+
+    # app_process.join()

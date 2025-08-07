@@ -71,6 +71,7 @@ dependencies = [
     "pre-commit>=4.2.0",
     "black>=25.1.0",
     "aiofiles>=24.1.0",
+    "volcengine-python-sdk==4.0.9",
 ]
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"

@@ -56,7 +56,7 @@ class UserAndMedia(Base):
     jct = Column(String(255))
 
     # 关系定义
-    user_config = relationship("UserConfig", back_populates="media_associations")
+    user_config = relationship("UserConfig")
 
 
 class AgentCard(Base):

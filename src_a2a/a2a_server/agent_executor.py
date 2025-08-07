@@ -30,13 +30,6 @@ class CoreAgentExecutor(AgentExecutor):
         self.mcp_server_id = db.fetch_one(
             AgentCardAndMcpServer, agent_card_id=agent_index
         ).mcp_server_id
-        self.agent = Agent(
-            mode="complete",
-            token_stream_callback=print,
-            mcp_url=f"http://localhost:8000/app_mcp/ask_mcp",
-            agent_index=self.agent_index,
-            mcp_server_id=self.mcp_server_id,
-        )
 
     # TODO: 待完成
     #
@@ -46,6 +39,19 @@ class CoreAgentExecutor(AgentExecutor):
         context: RequestContext,
         event_queue: EventQueue,
     ) -> None:
+
+        print("=========================动态self.mcp_server_id")
+        print(self.mcp_server_id)
+        print(self.agent_index)
+
+        self.agent = Agent(
+            mode="complete",
+            token_stream_callback=print,
+            mcp_url=f"http://localhost:8000/app_mcp/ask_mcp",
+            agent_index=self.agent_index,
+            mcp_server_id=self.mcp_server_id,
+        )
+
         query = context.get_user_input()
         task = context.current_task
 
@@ -57,6 +63,9 @@ class CoreAgentExecutor(AgentExecutor):
             await event_queue.enqueue_event(task)
 
         event = await self.agent.completion(query)
+
+        print("=================================query")
+        print(query)
 
         await event_queue.enqueue_event(
             TaskStatusUpdateEvent(
