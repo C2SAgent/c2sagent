@@ -16,6 +16,10 @@
         <div v-else-if="message.type === 'img'" class="message-content">
           <img :src="message.content" alt="分析结果图片" style="max-width: 100%; max-height: 300px;">
         </div>
+        <div v-else-if="message.type === 'thought'" class="message-content">
+          <div class="thought-title">思考</div>
+          <div class="thought-content">{{ message.content }}</div>
+        </div>
         <div class="message-time">
           {{ formatTime(message.timestamp) }}
         </div>
@@ -369,5 +373,15 @@ export default defineComponent({
     transform: translateY(-5px);
     opacity: 1;
   }
+}
+
+.thought-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #666; /* 深灰色 */
+}
+
+.thought-content {
+  color: #999; /* 浅灰色 */
 }
 </style>

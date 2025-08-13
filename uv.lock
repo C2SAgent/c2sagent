@@ -315,6 +315,7 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "typing-inspection" },
     { name = "uvicorn" },
+    { name = "volcengine-python-sdk" },
     { name = "websockets" },
 ]
 
@@ -385,6 +386,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = "==4.13.2" },
     { name = "typing-inspection", specifier = "==0.4.1" },
     { name = "uvicorn", specifier = "==0.34.2" },
+    { name = "volcengine-python-sdk", specifier = "==4.0.9" },
     { name = "websockets", specifier = "==15.0.1" },
 ]
 
@@ -3259,6 +3261,18 @@ sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/56/2c/444f465fb2c65f
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/f3/40/b1c265d4b2b62b58576588510fc4d1fe60a86319c8de99fd8e9fec617d2c/virtualenv-20.31.2-py3-none-any.whl", hash = "sha256:36efd0d9650ee985f0cad72065001e66d49a6f24eb44d98980f630686243cf11", size = 6057982, upload-time = "2025-05-08T17:58:21.15Z" },
 ]
+
+[[package]]
+name = "volcengine-python-sdk"
+version = "4.0.9"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "python-dateutil" },
+    { name = "six" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/70/68/365aa02f080eab469b78948b46c810e630672895dcdbff9fde1d2ec0bf95/volcengine-python-sdk-4.0.9.tar.gz", hash = "sha256:1cf061b7f2bda62258c13549befc1da7072de43f2c7b39ca64da279a7f424113", size = 6310776, upload-time = "2025-08-01T10:28:26.983Z" }
 
 [[package]]
 name = "wcwidth"

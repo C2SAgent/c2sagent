@@ -19,7 +19,7 @@
       @update:isTimeSeries="val => isTimeSeries = val"
     />
     <div v-else class="empty-chat-area">
-      <p>请选择或创建一个新的聊天</p>
+      <p>请选择或创建一个新的任务</p>
     </div>
   </div>
 </template>
@@ -52,7 +52,7 @@ export default defineComponent({
       if (newId) {
         try {
           const freshData = await HistoryApi.load(newId);
-          sessions.value = sessions.value.map(s => 
+          sessions.value = sessions.value.map(s =>
             s.session_id === newId ? freshData : s
           );
           activeSession.value = freshData;
@@ -90,57 +90,79 @@ const sendMessage = async (sessionId: string, content: string) => {
     timestamp: new Date()
   };
   session.messages.push(userMessage);
-  
+
   isWaiting.value = true;
-  
+
+  // 定义更新内容的辅助函数
+  const updateContent = (msg: ChatMessage, newData: string) => {
+    const index = session.messages.indexOf(msg);
+    if (index !== -1) {
+      const newMsg = {...msg, content: msg.content + newData};
+      session.messages.splice(index, 1, newMsg);
+      return newMsg; // 返回更新后的消息
+    }
+    return msg;
+  };
+
   try {
     // 获取流式响应
     const stream = await AgentApi.askAgentStreaming(
-      sessionId, 
-      content, 
-      isTimeSeries.value, 
+      sessionId,
+      content,
+      isTimeSeries.value,
       uploadedFile.value
     );
 
-    // 直接使用流对象
     const reader = stream.getReader();
-    let botMessage: ChatMessage | null = null;
+    let currentMessage: ChatMessage | null = null;
+    let currentType: string | null = null;
     let done = false;
 
     while (!done) {
       const { value, done: streamDone } = await reader.read();
       done = streamDone;
-      
+
       if (value) {
-        // 处理流数据
         const textDecoder = new TextDecoder();
         const chunk = textDecoder.decode(value);
         const lines = chunk.split('\n\n').filter(line => line.trim());
-        
+
         for (const line of lines) {
           try {
             const parsed = JSON.parse(line);
             const { event, data } = parsed;
-            
-            if (event === 'text') {
-              if (!botMessage) {
-                botMessage = {
-                  content: data,
-                  role: 'system',
-                  type: 'text',
-                  timestamp: new Date()
-                };
-                session.messages.push(botMessage);
-              } else {
-                botMessage.content += data;
-              }
-            } else if (event === 'doc' || event === 'img') {
-              session.messages.push({
+
+            if (event === 'end') {
+              currentMessage = null;
+              currentType = null;
+              continue;
+            }
+
+            // 特殊类型处理：img和doc总是创建新消息
+            if (event === 'img' || event === 'doc') {
+              currentMessage = {
                 content: data,
                 role: 'system',
                 type: event,
                 timestamp: new Date()
-              });
+              };
+              session.messages.push(currentMessage);
+              continue;
+            }
+
+            if (event !== currentType || !currentMessage) {
+              // 类型变化或没有当前消息，创建新消息
+              currentType = event;
+              currentMessage = {
+                content: data,
+                role: 'system',
+                type: event === 'thought' ? 'thought' : 'text',
+                timestamp: new Date()
+              };
+              session.messages.push(currentMessage);
+            } else {
+              // 类型相同且存在当前消息，使用updateContent更新内容
+              currentMessage = updateContent(currentMessage, data);
             }
           } catch (e) {
             console.error('解析流数据失败:', e);
@@ -189,7 +211,10 @@ const sendMessage = async (sessionId: string, content: string) => {
           router.push('/agent/list')
           break
         case 'mcp':
-          router.push('/mcp/list') 
+          router.push('/mcp/list')
+          break
+        case 'media':
+          router.push('/media/list')
           break
         case 'logout':
           router.push('/logout')

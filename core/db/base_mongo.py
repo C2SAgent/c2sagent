@@ -140,25 +140,26 @@ async def main():
         }
         session_id = await mongo.create_session("test_user", test_msg)
 
-        # 查询会话
-        session = await mongo.get_session_by_ids("test_user", session_id)
-        print("Session:", session)
+        # # 查询会话
+        # session = await mongo.get_session_by_ids("36", session_id)
+        # print("Session:", session)
 
         # 添加新消息
         new_msg = {
             "role": "assistant",
+            "type": "thought",
             "content": "Hi there! How can I help?",
             "timestamp": datetime.now().isoformat(),
         }
         await mongo.add_message(session_id, new_msg)
 
-        # 查询更新后的会话
+        # # 查询更新后的会话
         updated_session = await mongo.get_session_by_ids("test_user", session_id)
         print("Updated session:", updated_session)
 
-        # 获取用户所有会话
-        sessions = await mongo.get_sessions("test_user")
-        print("User sessions:", sessions)
+        # # 获取用户所有会话
+        # sessions = await mongo.get_sessions("test_user")
+        # print("User sessions:", sessions)
 
         # 清理测试数据
         # await mongo.delete_session(session_id)

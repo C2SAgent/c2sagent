@@ -30,7 +30,7 @@ async def initialize_resources():
                 server_name: parse_mcp_client(config)
                 for server_name, config in mcp_config["mcpServers"].items()
             }
-            _llm_client = LLMClient(llm_url="init", api_key=get_api_key())
+            _llm_client = LLMClient()
             logging.info("Resources initialized")
         except Exception as e:
             logging.critical(f"Initialization failed: {e}")

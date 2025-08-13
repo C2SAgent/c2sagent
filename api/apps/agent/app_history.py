@@ -71,7 +71,7 @@ async def do_create_session(
         await mongo.connect()
         question_msg = {
             "role": "system",
-            "content": "您好，我们是一个智能团队，叫小C，有什么安排的都可以向我提呦~~~",
+            "content": f"您好，您的user_id是{current_user.id}，我们是一个智能团队，叫小C，给我布置一个任务",
             "timestamp": datetime.now().isoformat(),
         }
         session_id = await mongo.create_session(str(current_user.id), question_msg)

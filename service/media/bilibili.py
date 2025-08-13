@@ -1,5 +1,4 @@
 import base64
-import logging
 import sys
 from pathlib import Path
 
@@ -7,187 +6,23 @@ import requests
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-import json
-import os
-
 import asyncio
 from core.db.base import DatabaseManager
 from model import model_agent as models
-import re
-import json
-import pandas as pd
 
+from mcp.server.fastmcp import FastMCP
 from api.apps.agent.config import settings
-
-from api.apps.agent.database import engine
 
 DATABASE_URL = settings.DATABASE_URL
 db = DatabaseManager(DATABASE_URL)
 
-# 常量定义
-FORECAST_PATH_PREFIX = "forecasts"
-CSV_CONTENT_TYPE = "text/csv"
-PNG_CONTENT_TYPE = "image/png"
 
-
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
-
+mcp_server = FastMCP("Bilibili", port=3001)
 
 # =================================================信息
 class Bilibili:
-    def __init__(self, SESSDATA, BILI_JCT):
-        # SESSDATA = '61ea3e83%2C1769495855%2C1698b%2A72CjDYCVqgH0H3lGnIyHPfwDOTGuGupmjdn1H9mXCZGLQgayD2lnQ2r5OsjaOhhsi2q08SVlpaVVE2R2tqX0ZOUEFWbEVXOXdmZWM2bEgyUzFkQlF2aTdSZ3Qxc2RBR0RNcld1VkpTbnY5Rmpfc204bjBDM0p3MTZXakh1OU9XZ3BEbzNJcGwya2lRIIEC'
-        # BILI_JCT = '7ed34b88269f819f3086dbe067991e0e'
-        # video_path = "test.mp4"
-        # cover_path = "cover.jpg"
-        # video_title = "视频主标题"
-        # video_desc = "视频简介"
-        # dynamic_text = "动态内容"
-
-        self.SESSDATA = SESSDATA
-        self.BILI_JCT = BILI_JCT
-        self.HEADERS = {
-            "Cookie": f"SESSDATA={self.SESSDATA}; bili_jct={self.BILI_JCT}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": "https://member.bilibili.com/platform/upload/video/frame",
-            "Origin": "https://member.bilibili.com",
-            "Accept": "application/json, text/plain, */*",
-        }
-
-    def preupload(self, filename):
-        url = "https://member.bilibili.com/preupload"
-        params = {
-            "name": filename,
-            "r": "upos",
-            "profile": "ugcfx/bup",
-        }
-        resp = requests.get(url, params=params, headers=self.HEADERS)
-        logging.info(f"Preupload Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
-    def post_video_meta(self, endpoint, upos_uri, auth, filesize, partsize, biz_id):
-        url = f"https:{endpoint}{upos_uri.replace('upos://', '/')}"
-        params = {
-            "uploads": "",
-            "output": "json",
-            "profile": "ugcfx/bup",
-            "filesize": filesize,
-            "partsize": partsize,
-            "biz_id": biz_id,
-        }
-        headers = self.HEADERS.copy()
-        headers["X-Upos-Auth"] = auth
-        resp = requests.post(url, params=params, headers=headers)
-        logging.info(f"Post meta Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
-    def upload_video_chunks(self, video_path, preupload, postmeta):
-        chunk_size = preupload["chunk_size"]
-        upload_id = postmeta["upload_id"]
-        endpoint = preupload["endpoint"]
-        upos_uri = preupload["upos_uri"].replace("upos://", "/")
-        url = f"https:{endpoint}{upos_uri}"
-
-        filesize = os.path.getsize(video_path)
-        chunks = (filesize + chunk_size - 1) // chunk_size
-        etags = []
-
-        with open(video_path, "rb") as f:
-            for chunk in range(chunks):
-                start = chunk * chunk_size
-                f.seek(start)
-                data = f.read(chunk_size)
-                size = len(data)
-                params = {
-                    "partNumber": chunk + 1,
-                    "uploadId": upload_id,
-                    "chunk": chunk,
-                    "chunks": chunks,
-                    "size": size,
-                    "start": start,
-                    "end": start + size,
-                    "total": filesize,
-                }
-                headers = self.HEADERS.copy()
-                headers["X-Upos-Auth"] = preupload["auth"]
-                headers["Content-Type"] = "application/octet-stream"
-                headers["Content-Length"] = str(size)
-                resp = requests.put(url, params=params, headers=headers, data=data)
-                resp.raise_for_status()
-                # 正式环境请解析 resp.headers.get('ETag')，此处简单处理
-                etags.append({"partNumber": chunk + 1, "eTag": ""})
-                logging.info(f"Chunk {chunk+1}/{chunks} uploaded.")
-        return upload_id, etags
-
-    def end_upload(self, preupload, postmeta, etags, video_path):
-        endpoint = preupload["endpoint"]
-        upos_uri = preupload["upos_uri"].replace("upos://", "/")
-        url = f"https:{endpoint}{upos_uri}"
-        params = {
-            "output": "json",
-            "name": os.path.basename(video_path),
-            "profile": "ugcfx/bup",
-            "uploadId": postmeta["upload_id"],
-            "biz_id": preupload["biz_id"],
-        }
-        headers = self.HEADERS.copy()
-        headers["X-Upos-Auth"] = preupload["auth"]
-        headers["Content-Type"] = "application/json"
-        body = json.dumps({"parts": etags})
-        resp = requests.post(url, params=params, headers=headers, data=body)
-        logging.info(f"End upload Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
-    def upload_cover(self, image_path):
-        url = "https://member.bilibili.com/x/vu/web/cover/up"
-        with open(image_path, "rb") as f:
-            b64data = base64.b64encode(f.read()).decode()
-        data = {"csrf": self.BILI_JCT, "cover": f"data:image/jpeg;base64,{b64data}"}
-        resp = requests.post(url, data=data, headers=self.HEADERS)
-        logging.info(f"Upload cover Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
-    def predict_type(self, filename, title=""):
-        url = "https://member.bilibili.com/x/vupre/web/archive/types/predict"
-        params = {"csrf": self.BILI_JCT}
-        files = {"filename": (None, filename), "title": (None, title)}
-        resp = requests.post(url, params=params, files=files, headers=self.HEADERS)
-        logging.info(f"Predict type Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
-    def recommend_tag(self, subtype_id, title, description):
-        url = "https://member.bilibili.com/x/vupre/web/tag/recommend"
-        params = {
-            "subtype_id": subtype_id,
-            "title": title,
-            "description": description,
-        }
-        resp = requests.get(url, params=params, headers=self.HEADERS)
-        logging.info(f"Recommend tag Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
-    def add_video(self, payload):
-        url = "https://member.bilibili.com/x/vu/web/add/v3"
-        params = {"csrf": self.BILI_JCT}
-        headers = self.HEADERS.copy()
-        headers["Content-Type"] = "application/json"
-        resp = requests.post(
-            url, params=params, data=json.dumps(payload), headers=headers
-        )
-        logging.info(f"Add video Status: {resp.status_code}\nContent: {resp.text}")
-        resp.raise_for_status()
-        return resp.json()
-
+    @staticmethod
     def sync_upload_and_post_bilibili(
-        self,
         video_url: str,
         cover_url: str,
         video_title: str,
@@ -371,24 +206,51 @@ class Bilibili:
             if os.path.exists(cover_path):
                 os.remove(cover_path)
 
+    @mcp_server.tool()
+    @staticmethod
     async def do_list_session(
-        self,
         video_title: str,
         video_desc: str,
         dynamic_text: str,
         video_url: str,  # 改为OSS视频链接
         cover_url: str,  # 改为OSS封面链接
         user_id: int,
+        sessdata: str,
+        jct: str,
     ):
-        media = await db.fetch_one(models.AgentCard, name="bilibili", user_id=user_id)
-        if not media:
-            return {"code": -1, "message": "未找到对应的B站账号配置"}
-        # class Media:
-        #     sessdata: str = "61ea3e83%2C1769495855%2C1698b%2A72CjDYCVqgH0H3lGnIyHPfwDOTGuGupmjdn1H9mXCZGLQgayD2lnQ2r5OsjaOhhsi2q08SVlpaVVE2R2tqX0ZOUEFWbEVXOXdmZWM2bEgyUzFkQlF2aTdSZ3Qxc2RBR0RNcld1VkpTbnY5Rmpfc204bjBDM0p3MTZXakh1OU9XZ3BEbzNJcGwya2lRIIEC"
-        #     jct: str = "7ed34b88269f819f3086dbe067991e0e"
+        """do_list_session
 
-        # media = Media()
+        Args:
+            video_title (str): 这里为视频标题
+            video_desc (str): 这里为视频描述
+            dynamic_text (str): 这里是动态文本
+            video_url (str): 这里是视频的oss链接，你需要调用视频生成工具来获取这个链接
+            cover_url (str): 这里是封面的oss链接，你需要调用图片生成工具来获取这个链接
+            user_id (int): 这里为用户ID
+            以上都为必填参数
 
+        Returns:
+            {'code': 0, 'message': '0', 'ttl': 1, 'data': {'aid': 114974110256368, 'bvid': 'BV1KttjzjE2D'}}
+        """
+        if user_id:
+            media = await db.fetch_one(
+                models.AgentCard, name="bilibili", user_id=user_id
+            )
+            if not media:
+                return {"code": -1, "message": "未找到对应的B站账号配置"}
+
+        else:
+
+            class Media:
+                sessdata: str = ""  # "61ea3e83%2C1769495855%2C1698b%2A72CjDYCVqgH0H3lGnIyHPfwDOTGuGupmjdn1H9mXCZGLQgayD2lnQ2r5OsjaOhhsi2q08SVlpaVVE2R2tqX0ZOUEFWbEVXOXdmZWM2bEgyUzFkQlF2aTdSZ3Qxc2RBR0RNcld1VkpTbnY5Rmpfc204bjBDM0p3MTZXakh1OU9XZ3BEbzNJcGwya2lRIIEC"
+                jct: str = ""  # "7ed34b88269f819f3086dbe067991e0e"
+
+            media = Media()
+            media.sessdata = sessdata
+            media.jct = jct
+
+        print(media.sessdata)
+        print(media.jct)
         # 构造 HEADERS
         HEADERS = {
             "Cookie": f"SESSDATA={media.sessdata}; bili_jct={media.jct}",
@@ -401,7 +263,7 @@ class Bilibili:
         try:
             # 投递主流程（同步代码跑在线程池，避免阻塞event loop）
             ret = await asyncio.to_thread(
-                self.sync_upload_and_post_bilibili,
+                Bilibili.sync_upload_and_post_bilibili,
                 video_url,
                 cover_url,
                 video_title,
@@ -420,14 +282,20 @@ async def main():
     video_title = "测试投稿"
     video_desc = "测试投稿"
     dynamic_text = "测试投稿"
-    video_url = "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-0-pro/02175436153383800000000000000000000ffffac155fa0a23032.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20250805%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20250805T023939Z&X-Tos-Expires=86400&X-Tos-Signature=2bb3a527e2df3ae5488655820c96fb2393991b8162c091f552e94080933fbabc&X-Tos-SignedHeaders=host"
-    cover_url = "https://ark-content-generation-v2-cn-beijing.tos-cn-beijing.volces.com/doubao-seedream-3-0-t2i/02175436493592901fd5fdd4a9586a81a38861506549a40227fef.jpeg?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20250805%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20250805T033539Z&X-Tos-Expires=86400&X-Tos-Signature=e44b26178ae6b7f4b3c22acd3a558fed1c6d03e77c675774d67bd6e29745457a&X-Tos-SignedHeaders=host&x-tos-process=image%2Fwatermark%2Cimage_YXNzZXRzL3dhdGVybWFyay5wbmc_eC10b3MtcHJvY2Vzcz1pbWFnZS9yZXNpemUsUF8xNg%3D%3D"
+    video_url = "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-0-pro/02175436470018300000000000000000000ffffac155fa0d630d2.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20250805%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20250805T033226Z&X-Tos-Expires=86400&X-Tos-Signature=ab4cc9a59384097076b566af5f9552e94f09fd463939e8433bf30ebdf840183d&X-Tos-SignedHeaders=host"
+    cover_url = "https://ark-content-generation-v2-cn-beijing.tos-cn-beijing.volces.com/doubao-seedream-3-0-t2i/021754468812617499895d87efaad9c7b3a5055ad65863c3c0451.jpeg?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20250806%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20250806T082655Z&X-Tos-Expires=86400&X-Tos-Signature=71da2e0511058b1a5b085c2b2ab938be27f451e2decba0c839a91e0c257af297&X-Tos-SignedHeaders=host&x-tos-process=image%2Fwatermark%2Cimage_YXNzZXRzL3dhdGVybWFyay5wbmc_eC10b3MtcHJvY2Vzcz1pbWFnZS9yZXNpemUsUF8xNg%3D%3D"
     user_id = 35
-
-    bilibili = Bilibili("", "")
-
-    result = await bilibili.do_list_session(
-        video_title, video_desc, dynamic_text, video_url, cover_url, user_id
+    sessdata = "61ea3e83%2C1769495855%2C1698b%2A72CjDYCVqgH0H3lGnIyHPfwDOTGuGupmjdn1H9mXCZGLQgayD2lnQ2r5OsjaOhhsi2q08SVlpaVVE2R2tqX0ZOUEFWbEVXOXdmZWM2bEgyUzFkQlF2aTdSZ3Qxc2RBR0RNcld1VkpTbnY5Rmpfc204bjBDM0p3MTZXakh1OU9XZ3BEbzNJcGwya2lRIIEC"
+    jct = "7ed34b88269f819f3086dbe067991e0e"
+    result = await Bilibili.do_list_session(
+        video_title,
+        video_desc,
+        dynamic_text,
+        video_url,
+        cover_url,
+        user_id="",
+        sessdata=sessdata,
+        jct=jct,
     )
 
     print(result)
@@ -435,3 +303,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# def main():
+#     mcp_server.run(transport="streamable-http")

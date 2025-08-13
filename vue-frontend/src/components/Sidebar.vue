@@ -2,7 +2,7 @@
   <div class="sidebar">
     <div class="sidebar-top">
       <button class="new-chat-btn" @click="emitNewChat">
-        <span>+</span> 新建聊天
+        <span>+</span> 新任务
       </button>
       <div class="chat-list">
         <ChatItem
@@ -21,6 +21,9 @@
       </button>
       <button @click="emitNavigation('mcp')">
         <span>⚙️</span> 管理我的Mcp
+      </button>
+      <button @click="emitNavigation('media')">
+        <span>⚙️</span> 管理我的Meida
       </button>
       <button @click="emitNavigation('logout')">
         <span>🚪</span> 退出登录
@@ -138,7 +141,7 @@ export default defineComponent({
 
 .chat-list {
   overflow-y: auto;
-  pointer-events: auto; 
+  pointer-events: auto;
   height: calc(100% - 5rem);
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #ffffff;
