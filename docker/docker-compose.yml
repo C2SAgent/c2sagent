@@ -36,73 +36,57 @@ services:
       - "6379:6379"
     networks:
       - app_net
-    
-  # mindsdb:
-  #   image: mindsdb/mindsdb:latest
-  #   container_name: mindsdb
-  #   restart: unless-stopped
-  #   ports:
-  #     - "47334:47334" 
-  #     - "47335:47335"  
-  #   volumes:
-  #     - ./mindsdb_storage:/root/mindsdb_storage
-  #   environment:
-  #     - ML_HANDLERS_ALL=lightwood,sklearn
-  #   networks:
-  #     - app_net
 
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: postgres
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgre
-  #     POSTGRES_DB: manager_agent
-  #   volumes:
-  #     - postgres_data:/data/postgres_data
-  #     - ./postgresql-init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-  #   ports:
-  #     - "5433:5432"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - app_net
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgre
+      POSTGRES_DB: manager_agent
+    volumes:
+      - postgres_data:/data/postgres_data
+      - ./postgresql-init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
 
-  # backend:
-  #   build:
-  #     context: ..
-  #     dockerfile: docker/Dockerfile
-  #   ports:
-  #     - "8000:8000"
-  #     - "3000:3000" 
-  #     - "10001:10001"
-  #   volumes:
-  #     - ../.:/app
-  #   environment:
-  #     - PYTHONPATH=/app
-  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgre@postgres:5432/manager_agent
-  #     - DATABASE_SYNC_URL=postgresql://postgres:postgre@localhost/manager_agent
-  #     - MONGO_URI=mongodb://root:your_secure_password@mongodb:27017/
-  #     - SECRET_KEY=your-secret-key-here
-  #     - BIND=0.0.0.0
-  #   depends_on:
-  #     mongodb:
-  #       condition: service_healthy
-  #     mindsdb:
-  #       condition: service_healthy
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - app_net
-  #   restart: unless-stopped
-    
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+      - "10001:10001"
+    volumes:
+      - ../.:/app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgre@postgres:5432/manager_agent
+      - DATABASE_SYNC_URL=postgresql://postgres:postgre@localhost/manager_agent
+      - MONGO_URI=mongodb://root:your_secure_password@mongodb:27017/
+      - SECRET_KEY=your-secret-key-here
+      - BIND=0.0.0.0
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: unless-stopped
+
 volumes:
   mongodb_data:
   redis_data:
-  # mindsdb:
-  # postgres_data:
-  # backend:
-
+  postgres_data:
+  backend:
