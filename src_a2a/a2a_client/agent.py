@@ -181,6 +181,11 @@ class Agent:
         match = re.search(pattern, response)
         return match.group(1).strip()
 
+    def extract_thought(self, response: str) -> str:
+        pattern = r"<Thoughts>([\s\S]*?)</Thoughts>"
+        match = re.search(pattern, response)
+        return match.group(1).strip()
+
     async def send_message_to_an_agent(self, agent_card: AgentCard, message: str):
         """Send a message to a specific agent and yield the streaming response.
 
@@ -231,10 +236,25 @@ class Agent:
         Yields:
             str: Streaming output, including agent responses and intermediate steps.
         """  # noqa: E501
+
         agent_answers: list[dict] = []
 
         agents_registry, agent_prompt = await self.get_agents()
-        response = await self.decide(question, agent_prompt, agent_answers)
+        # response = await self.decide(question, agent_prompt, agent_answers)
+
+        response = ""
+
+        print("==============开始流式思考=================")
+        async for chunk in self.decide_streaming(question, agent_prompt, agent_answers):
+            response += chunk
+            if "</" in response:
+                continue
+            elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
+                print("得到了思考结果")
+                yield {"type": "thought", "content": chunk}
+        print("=====================================response")
+        print(response)
+        print("=======================================response")
         agents = self.extract_agents(response)
 
         if agents:
@@ -250,11 +270,11 @@ class Agent:
                         "answer": agent_response,
                     }
                 )
-            return agent_answers
+            yield {"type": "text", "content": agent_answers}
         else:
-            return self.extract_response(response)
+            yield {"type": "text", "content": self.extract_response(response)}
 
-    def call_llm_streaming(self, prompt: str) -> str:
+    async def call_llm_streaming(self, prompt: str) -> str:
         """Call the LLM with the given prompt and return the response as a string or generator.
 
         Args:
@@ -263,13 +283,16 @@ class Agent:
         Returns:
             str or Generator[str]: The LLM response as a string or generator, depending on mode.
         """  # noqa: E501
-        if self.mode == "complete":
-            return stream_llm(prompt)
+        user_find = db.fetch_one(UserConfig, id=self.user_id)
+        core_llm_url = user_find.core_llm_url
+        core_llm_key = user_find.core_llm_key
+        llm_client = LLMClient(core_llm_url, core_llm_key)
 
-        result = ""
-        for chunk in stream_llm(prompt):
-            result += chunk
-        return result
+        print("===================call_llm_steaming===================")
+        async for chunk in llm_client.get_stream_response(
+            prompt, core_llm_url, core_llm_key
+        ):
+            yield chunk
 
     async def decide_streaming(
         self,
@@ -298,7 +321,10 @@ class Agent:
             agent_prompt=agents_prompt,
             call_agent_prompt=call_agent_prompt,
         )
-        return self.call_llm_streaming(prompt)
+        print("=================decide_streaming===================")
+        prompt_list = [{"role": "system", "content": prompt}]
+        async for chunk in self.call_llm_streaming(prompt_list):
+            yield chunk
 
     async def send_message_to_an_agent_streaming(
         self, agent_card: AgentCard, message: str

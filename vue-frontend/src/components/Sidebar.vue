@@ -2,7 +2,7 @@
   <div class="sidebar">
     <div class="sidebar-top">
       <button class="new-chat-btn" @click="emitNewChat">
-        <span>+</span> 新建聊天
+        <span>+</span> 新任务
       </button>
       <div class="chat-list">
         <ChatItem

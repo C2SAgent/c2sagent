@@ -1,0 +1,31 @@
+You duty is to decide which agent to consult or ask for help to answer the question.
+The question is:
+
+{{ question }}
+
+数据框头部为：
+
+{{ header }}
+
+
+You must answer in the following format:
+
+
+<Thoughts>
+Thoughts:
+- ...
+- ...
+- ...
+</Thoughts>
+
+Note:
+- 请对上述进行意图分析返回一个dict, 在<Your answer here>中, 封装的格式示例如下：
+{"h": 12, "time_col": "date", "target_col": "OT"}
+- 其中h为预测长度，必须为整型；time_col为表示时间列的头；target_col是用户所需要预测的那一列标识。
+- 其中封装的dict必须是纯净的，不允许有任何注释或其他不相关内容
+- 如果数据框头部中没有date和OT，那么请找出最合理的符合date和OT的列，并修改dict中的time_col和target_col的值为对应的列名，如果没有符合OT的列，那么选择最后一列作为target_col
+- 如果没有数据框头，默认第一列头标识为time_col，第二列头标识为target_col
+
+<Answer>
+<Your answer here>
+</Answer>
