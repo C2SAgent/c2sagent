@@ -33,9 +33,5 @@ RUN pip install --no-cache-dir psycopg2-binary==2.9.9 sqlalchemy==2.0.30
 # 6. 设置工作目录
 WORKDIR /app
 
-# 7. 复制应用代码
-# COPY . .
-RUN mkdir -p ./logs
-
 # 8. 启动命令
 CMD ["supervisord", "-c", "/app/conf/supervisord.conf"]
