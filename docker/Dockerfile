@@ -1,10 +1,14 @@
 FROM python:3.12-slim
 
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
-    python3-dev && \
+    python3-dev \
+    supervisor && \
     rm -rf /var/lib/apt/lists/*
 
 # 1. 安装 uv 到系统 Python（不创建虚拟环境）
@@ -31,6 +35,7 @@ WORKDIR /app
 
 # 7. 复制应用代码
 # COPY . .
+RUN mkdir -p ./logs
 
 # 8. 启动命令
-CMD ["/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["supervisord", "-c", "/app/conf/supervisord.conf"]

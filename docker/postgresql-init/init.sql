@@ -204,6 +204,43 @@ ALTER SEQUENCE public.agent_card_id_seq OWNED BY public.agent_card.id;
 
 
 --
+-- Name: data_sources; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.data_sources (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    description character varying(500),
+    created_at timestamp without time zone DEFAULT '2025-07-16 22:45:59.663884'::timestamp without time zone,
+    params jsonb
+);
+
+
+ALTER TABLE public.data_sources OWNER TO postgres;
+
+--
+-- Name: data_sources_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.data_sources_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.data_sources_id_seq OWNER TO postgres;
+
+--
+-- Name: data_sources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.data_sources_id_seq OWNED BY public.data_sources.id;
+
+
+--
 -- Name: input_mode; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -417,6 +454,43 @@ ALTER SEQUENCE public.skill_id_seq OWNED BY public.skill.id;
 
 
 --
+-- Name: time_series_data; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.time_series_data (
+    id integer NOT NULL,
+    data_source_id integer NOT NULL,
+    "timestamp" timestamp without time zone NOT NULL,
+    value double precision NOT NULL,
+    created_at timestamp without time zone DEFAULT '2025-07-16 22:45:59.663884'::timestamp without time zone
+);
+
+
+ALTER TABLE public.time_series_data OWNER TO postgres;
+
+--
+-- Name: time_series_data_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.time_series_data_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.time_series_data_id_seq OWNER TO postgres;
+
+--
+-- Name: time_series_data_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.time_series_data_id_seq OWNED BY public.time_series_data.id;
+
+
+--
 -- Name: tool; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -449,6 +523,46 @@ ALTER SEQUENCE public.tool_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.tool_id_seq OWNED BY public.tool.id;
+
+
+--
+-- Name: trained_models; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.trained_models (
+    id integer NOT NULL,
+    data_source_id integer NOT NULL,
+    model_name character varying(100) NOT NULL,
+    status character varying(20),
+    params jsonb,
+    metrics jsonb,
+    created_at timestamp without time zone DEFAULT '2025-07-16 22:45:59.663884'::timestamp without time zone,
+    updated_at timestamp without time zone DEFAULT '2025-07-16 22:45:59.663884'::timestamp without time zone
+);
+
+
+ALTER TABLE public.trained_models OWNER TO postgres;
+
+--
+-- Name: trained_models_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.trained_models_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.trained_models_id_seq OWNER TO postgres;
+
+--
+-- Name: trained_models_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.trained_models_id_seq OWNED BY public.trained_models.id;
 
 
 --
@@ -500,6 +614,46 @@ ALTER SEQUENCE public.user_config_and_llm_config_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.user_config_and_llm_config_id_seq OWNED BY public.user_config_and_llm_config.id;
+
+
+--
+-- Name: user_config_and_media; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_config_and_media (
+    id integer NOT NULL,
+    name character varying(255),
+    user_id integer NOT NULL,
+    sessdata text,
+    jct text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    cover_url character varying(255)
+);
+
+
+ALTER TABLE public.user_config_and_media OWNER TO postgres;
+
+--
+-- Name: user_config_and_media_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_config_and_media_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.user_config_and_media_id_seq OWNER TO postgres;
+
+--
+-- Name: user_config_and_media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_config_and_media_id_seq OWNED BY public.user_config_and_media.id;
 
 
 --
@@ -560,6 +714,13 @@ ALTER TABLE ONLY public.agent_card_and_skill ALTER COLUMN id SET DEFAULT nextval
 
 
 --
+-- Name: data_sources id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.data_sources ALTER COLUMN id SET DEFAULT nextval('public.data_sources_id_seq'::regclass);
+
+
+--
 -- Name: input_mode id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -602,10 +763,24 @@ ALTER TABLE ONLY public.skill ALTER COLUMN id SET DEFAULT nextval('public.skill_
 
 
 --
+-- Name: time_series_data id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.time_series_data ALTER COLUMN id SET DEFAULT nextval('public.time_series_data_id_seq'::regclass);
+
+
+--
 -- Name: tool id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.tool ALTER COLUMN id SET DEFAULT nextval('public.tool_id_seq'::regclass);
+
+
+--
+-- Name: trained_models id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.trained_models ALTER COLUMN id SET DEFAULT nextval('public.trained_models_id_seq'::regclass);
 
 
 --
@@ -623,248 +798,10 @@ ALTER TABLE ONLY public.user_config_and_llm_config ALTER COLUMN id SET DEFAULT n
 
 
 --
--- Data for Name: agent_card; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Name: user_config_and_media id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-COPY public.agent_card (id, name, description, url, version, streaming, examples, user_id, llm_name, llm_url, llm_key) FROM stdin;
-3	q		\N	1.0	f	[]	35	gpt-4		
-4	e	e	\N	1.0	f	[]	35	e	e	e
-5	y	y	\N	1.0	f	[]	35	gpt-4		
-6	n		\N	1.0	f	[]	35	gpt-4		
-7	q		\N	1.0	f	[]	35	gpt-4		
-8	生活	用来回答生活问题的	\N	1.0	f	[]	36	deepseek	https://api.deepseek.com/v1	sk-7f49c72dbe9a4284b156701b84aa42a8
-\.
-
-
---
--- Data for Name: agent_card_and_input_mode; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.agent_card_and_input_mode (id, agent_card_id, input_mode_id) FROM stdin;
-\.
-
-
---
--- Data for Name: agent_card_and_mcp_server; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.agent_card_and_mcp_server (id, agent_card_id, mcp_server_id) FROM stdin;
-4	8	3
-\.
-
-
---
--- Data for Name: agent_card_and_output_mode; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.agent_card_and_output_mode (id, agent_card_id, output_mode_id) FROM stdin;
-\.
-
-
---
--- Data for Name: agent_card_and_skill; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.agent_card_and_skill (id, agent_card_id, skill_id) FROM stdin;
-\.
-
-
---
--- Data for Name: input_mode; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.input_mode (id, name) FROM stdin;
-\.
-
-
---
--- Data for Name: llm_config; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.llm_config (id, name, url, key, user_id) FROM stdin;
-\.
-
-
---
--- Data for Name: mcp_server; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.mcp_server (id, name, url, user_id) FROM stdin;
-3	t		36
-\.
-
-
---
--- Data for Name: mcp_server_and_tool; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.mcp_server_and_tool (id, mcp_server_id, tool_id) FROM stdin;
-\.
-
-
---
--- Data for Name: output_mode; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.output_mode (id, name) FROM stdin;
-\.
-
-
---
--- Data for Name: skill; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.skill (id, name, description, tags, examples) FROM stdin;
-1	new_skill	默认描述	\N	\N
-\.
-
-
---
--- Data for Name: tool; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.tool (id, name, url) FROM stdin;
-\.
-
-
---
--- Data for Name: user_config; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.user_config (id, name, password, core_llm_name, core_llm_url, core_llm_key) FROM stdin;
-1	newuser	hashed_password	gpt-4	\N	\N
-11	test_user	hashed_password	deepseek	https://api.deepseek.com/v1	sk-fc9e70085fe4411fb5b3f5aa121ee9a9
-12	super_admin	super_admin	deepseek	https://api.deepseek.com/v1	sk-fc9e70085fe4411fb5b3f5aa121ee9a9
-14	test01	$2b$12$zc.rkTSHralEW8Nvhrk3YuM4i6FgqovD4VzNtQYHhGSqicNIAv8Eq	\N	\N	\N
-15	testuser	$2b$12$sDNmQh2r5o59R69d3.ysTONvblzT0pC2F.i1ggLxYmg2JJvsqc1qq	default	http://example.com	12345
-16	test02	$2b$12$ToeOJ5XkhLS.farRFjSY.uCAw/iiHcPnMLCyi6A6NPtAk3UQNyYqi	default	http://example.com	12345
-17	test03	$2b$12$KHsWrv7zKsKHcyIE8llL3.nw3vV98woefm3px1A6wtnF6dUFe6w1a	default	http://example.com	12345
-18	test04	$2b$12$hOsX9VZdJCw1s16swFMSHOIYN0HqVCRW0ppnCDuY5At7cWsx7E75K	default	http://example.com	12345
-19	test05	$2b$12$QwfZG.BKJBgOC069fWXawu.qzEJJHMX/L2JwQ4C2JGPCo0QGZl.sa	default	http://example.com	12345
-20	test06	$2b$12$CAM3n4Yh.8gSDPhWFOmLyeylDROrxDjausqqyUps.VdkSgPfSZXtm	default	http://example.com	12345
-21	test07	$2b$12$Uzm3awnbrQSOO2PN5VMlaeLSCSCVEruBAF4625a15n1Q2e.uczJzS	default	http://example.com	12345
-22	test11	$2b$12$YD3ULeV/hHdn.eT3n4BijuLMPZpTjIvTv8.pTmzrkoQsHgCr0dUsO			
-23	test12	$2b$12$TbJHmw1CUhUFyTlBRzhqTuPdzBbek4rgDBoM.9wla5JxwQFweGtT.			
-24	test13	$2b$12$oxvQUwyTNIdivN4f4idLIO6IB.PhTcACjWhrPxdKPPa74Jcccfkfq			
-25	test15	$2b$12$BPRNqIMaLDMPpzEuvbngPeTpTdpCWmo4Zg5L.ws/i0cZbH/QQZzyG			
-26	tttt	$2b$12$xcOoVWwmOt5mstC7HGh1AuVu1Jta3R3ymz2maUXw3qAMJufTGP5iS			
-27	test16	$2b$12$jO7GYjWzq8Ki3ivxjCtqp.Uv.zNZ6zg8jWwvIBm6r1lKKbXgPHzH6			
-28	test17	$2b$12$zsy8a3xNP4/FOtra7G/YAunicSu/YOn1hhDZPiJebIiG89IqXjVCm			
-29	ttttt	$2b$12$d39e0KVNRV9ciY87PqOjl.fUZYdi/WWpayaBGFscJwcWlZk4N0Ify			
-30	test55	$2b$12$jngexk/pk1ukubgJOwe2xeJoJgAzNIDbYe4jZ0Zz0UOJ0d.SfBa2W			
-31	test22	$2b$12$U9qpWWo1m9nK9X8m2tkZeOrB.obXT.uWXDG1.vqfn0JvYcVFVbE.2			
-32	test88	$2b$12$CKXMczM3Iqvup1fyOCiove/ZyJzgms.yJKn9sNFs65huwpKv8ji6m	default	http://example.com	12345
-33	admin	$2b$12$rd5SMdowEamtJz6Pl/x4t.YxOw0Befe7EF0CdwHlEUwgQjA7IiRiW			
-34	myuser	$2b$12$hsmGr1uloemvAMc74x7LKethTPcAcvIShXPy7LKykh7dnclGhmlFK			
-35	ttt	$2b$12$elxF35Eh0X3W8jXOUteDduPd6mQYztZ59lZ2k54oWgfKJei.2rWwu			
-36	agent	$2b$12$y0UZhryJkJunw5FPn4dpseQxOI4ZIP/EgCgklxLFi1s0TpYDXid9C	deepseek	https://api.deepseek.com/v1	sk-7f49c72dbe9a4284b156701b84aa42a8
-\.
-
-
---
--- Data for Name: user_config_and_llm_config; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.user_config_and_llm_config (id, user_id, llm_id) FROM stdin;
-\.
-
-
---
--- Name: agent_card_and_input_mode_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.agent_card_and_input_mode_id_seq', 1, false);
-
-
---
--- Name: agent_card_and_mcp_server_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.agent_card_and_mcp_server_id_seq', 4, true);
-
-
---
--- Name: agent_card_and_output_mode_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.agent_card_and_output_mode_id_seq', 1, false);
-
-
---
--- Name: agent_card_and_skill_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.agent_card_and_skill_id_seq', 1, false);
-
-
---
--- Name: agent_card_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.agent_card_id_seq', 9, true);
-
-
---
--- Name: input_mode_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.input_mode_id_seq', 1, false);
-
-
---
--- Name: llm_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.llm_config_id_seq', 1, false);
-
-
---
--- Name: mcp_server_and_tool_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.mcp_server_and_tool_id_seq', 1, false);
-
-
---
--- Name: mcp_server_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.mcp_server_id_seq', 3, true);
-
-
---
--- Name: output_mode_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.output_mode_id_seq', 1, false);
-
-
---
--- Name: skill_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.skill_id_seq', 1, true);
-
-
---
--- Name: tool_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.tool_id_seq', 1, false);
-
-
---
--- Name: user_config_and_llm_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.user_config_and_llm_config_id_seq', 1, false);
-
-
---
--- Name: user_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.user_config_id_seq', 36, true);
+ALTER TABLE ONLY public.user_config_and_media ALTER COLUMN id SET DEFAULT nextval('public.user_config_and_media_id_seq'::regclass);
 
 
 --
@@ -940,6 +877,14 @@ ALTER TABLE ONLY public.agent_card
 
 
 --
+-- Name: data_sources data_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.data_sources
+    ADD CONSTRAINT data_sources_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: input_mode input_mode_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -996,11 +941,27 @@ ALTER TABLE ONLY public.skill
 
 
 --
+-- Name: time_series_data time_series_data_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.time_series_data
+    ADD CONSTRAINT time_series_data_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tool tool_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.tool
     ADD CONSTRAINT tool_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: trained_models trained_models_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.trained_models
+    ADD CONSTRAINT trained_models_pkey PRIMARY KEY (id);
 
 
 --
@@ -1025,6 +986,14 @@ ALTER TABLE ONLY public.user_config_and_llm_config
 
 ALTER TABLE ONLY public.user_config_and_llm_config
     ADD CONSTRAINT user_config_and_llm_config_user_id_llm_id_key UNIQUE (user_id, llm_id);
+
+
+--
+-- Name: user_config_and_media user_config_and_media_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_config_and_media
+    ADD CONSTRAINT user_config_and_media_pkey PRIMARY KEY (id);
 
 
 --
@@ -1124,6 +1093,14 @@ ALTER TABLE ONLY public.mcp_server
 
 
 --
+-- Name: user_config_and_media fk_user_config; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_config_and_media
+    ADD CONSTRAINT fk_user_config FOREIGN KEY (user_id) REFERENCES public.user_config(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: mcp_server_and_tool mcp_server_and_tool_mcp_server_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1137,6 +1114,22 @@ ALTER TABLE ONLY public.mcp_server_and_tool
 
 ALTER TABLE ONLY public.mcp_server_and_tool
     ADD CONSTRAINT mcp_server_and_tool_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tool(id) ON DELETE CASCADE;
+
+
+--
+-- Name: time_series_data time_series_data_data_source_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.time_series_data
+    ADD CONSTRAINT time_series_data_data_source_id_fkey FOREIGN KEY (data_source_id) REFERENCES public.data_sources(id);
+
+
+--
+-- Name: trained_models trained_models_data_source_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.trained_models
+    ADD CONSTRAINT trained_models_data_source_id_fkey FOREIGN KEY (data_source_id) REFERENCES public.data_sources(id);
 
 
 --
@@ -1158,7 +1151,3 @@ ALTER TABLE ONLY public.user_config_and_llm_config
 --
 -- PostgreSQL database dump complete
 --
-
-CREATE DATABASE timeseries;
--- 可选：授权给 postgres 用户
-GRANT ALL PRIVILEGES ON DATABASE timeseries TO postgres;
