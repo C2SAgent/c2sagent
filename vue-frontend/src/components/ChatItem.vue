@@ -42,7 +42,7 @@ export default defineComponent({
 <style scoped>
 .chat-item {
   position: relative;
-  padding: 0.875rem 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 0.75rem;
   margin-bottom: 0.5rem;
   cursor: pointer;
@@ -59,8 +59,8 @@ export default defineComponent({
 }
 
 .chat-item.active {
-  background: #4299e1;
-  border-color: #4299e1;
+  background: #76baf2;
+  border-color: #76baf2;
   color: white;
   box-shadow: 0 2px 6px rgba(66, 153, 225, 0.3);
 }

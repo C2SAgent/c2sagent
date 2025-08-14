@@ -9,6 +9,7 @@ from a2a.types import (
 from a2a.utils import new_agent_text_message, new_task, new_text_artifact
 from typing import Optional, override
 
+from core.llm.llm_client import LLMClient
 from src_a2a.a2a_server.agent import Agent
 from core.db.base_sync import DatabaseManager
 from model.model_agent import AgentCard, AgentCardAndMcpServer
@@ -27,9 +28,14 @@ class CoreAgentExecutor(AgentExecutor):
 
         self.agent_find = db.fetch_one(AgentCard, id=self.agent_index)
 
-        self.mcp_server_id = db.fetch_one(
-            AgentCardAndMcpServer, agent_card_id=agent_index
-        ).mcp_server_id
+        agentmcp_find = db.fetch_one(AgentCardAndMcpServer, agent_card_id=agent_index)
+
+        self.mcp_server_id = None
+
+        if agentmcp_find:
+            self.mcp_server_id = db.fetch_one(
+                AgentCardAndMcpServer, agent_card_id=agent_index
+            ).mcp_server_id
 
     # TODO: 待完成
     #
@@ -44,26 +50,36 @@ class CoreAgentExecutor(AgentExecutor):
         print(self.mcp_server_id)
         print(self.agent_index)
 
-        self.agent = Agent(
-            mode="complete",
-            token_stream_callback=print,
-            mcp_url=f"http://localhost:8000/app_mcp/ask_mcp",
-            agent_index=self.agent_index,
-            mcp_server_id=self.mcp_server_id,
-        )
+        if self.mcp_server_id:
+            self.agent = Agent(
+                mode="complete",
+                token_stream_callback=print,
+                mcp_url=f"http://localhost:8000/app_mcp/ask_mcp",
+                agent_index=self.agent_index,
+                mcp_server_id=self.mcp_server_id,
+            )
 
-        query = context.get_user_input()
-        task = context.current_task
+            query = context.get_user_input()
+            task = context.current_task
 
-        if not context.message:
-            raise Exception("No message provided")
+            if not context.message:
+                raise Exception("No message provided")
 
-        if not task:
-            task = new_task(context.message)
-            await event_queue.enqueue_event(task)
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
 
-        event = await self.agent.completion(query)
-
+            event = await self.agent.completion(query)
+        elif not self.agent_find:
+            event = "用户未装配智能体，你根据用户问题描述对应作答即可"
+        else:
+            llm_client = LLMClient("None", "None")
+            if self.agent_find.llm_url and self.agent_find.llm_key:
+                event = llm_client.get_response(
+                    query, self.agent_find.llm_url, self.agent_find.llm_key
+                )
+            else:
+                event = f"该智能体未配置LLM，暂不可用，你只需对应用户描述作答即可，并需要提醒用户所需要用到的智能体未配置llm，这是该智能体的名称：{self.agent_find.name}"
         print("=================================query")
         print(query)
 

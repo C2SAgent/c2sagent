@@ -59,6 +59,7 @@ export const AgentApi = {
     session_id: string,
     question: string,
     isTimeSeries: boolean,
+    isAgent: boolean,
     file?: File
   ): Promise<ReadableStream> {
     console.log("调用了askAgentStreaming")
@@ -70,6 +71,7 @@ export const AgentApi = {
     formData.append("question", question);
     formData.append("session_id", session_id);
     formData.append("isTimeSeries", String(isTimeSeries));
+    formData.append("isAgent", String(isAgent));
     formData.append("isDocAnalysis", "false");
     const token = localStorage.getItem('access_token');
     // console.log(token)

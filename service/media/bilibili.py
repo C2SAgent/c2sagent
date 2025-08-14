@@ -19,6 +19,7 @@ db = DatabaseManager(DATABASE_URL)
 
 mcp_server = FastMCP("Bilibili", port=3001)
 
+
 # =================================================信息
 class Bilibili:
     @staticmethod

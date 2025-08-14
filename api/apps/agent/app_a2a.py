@@ -129,6 +129,7 @@ async def stream_ask_a2a(
     question: str = Form(...),
     session_id: str = Form(...),
     isTimeSeries: bool = Form(False),
+    isAgent: bool = Form(False),
     isDocAnalysis: bool = Form(False),
     files: UploadFile = File(None),
     current_user: models.UserConfig = Depends(auth.get_current_active_user),
@@ -320,7 +321,7 @@ async def stream_ask_a2a(
                 except Exception as e:
                     yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
-            else:
+            elif isAgent:
                 print("=============================================normal")
                 question_message = f"""这是user_id:
                     {current_user.id}
@@ -363,8 +364,29 @@ async def stream_ask_a2a(
                     "timestamp": datetime.now().isoformat(),
                 }
                 await mongo.add_message(session_id, message_result)
-                # yield json.dumps({"event": "thought", "data": "test01"}) + "\n\n"
-                # yield json.dumps({"event": "text", "data": "test02"}) + "\n\n"
+            else:
+                messages_find = await mongo.get_session_by_ids(
+                    str(current_user.id), session_id
+                )
+                question_message = messages_find["messages"]
+                print("=========================普通问答")
+                print(question_message)
+                message_text = ""
+                async for result in llm_client.get_stream_response(
+                    question_message, llm_url=core_llm_url, api_key=core_llm_key
+                ):
+                    # if result["type"] == "text":
+                    message_text += result
+                    yield json.dumps({"event": "text", "data": result}) + "\n\n"
+
+                message_result = {
+                    "role": "system",
+                    "content": message_text,
+                    "type": "text",
+                    "timestamp": datetime.now().isoformat(),
+                }
+                await mongo.add_message(session_id, message_result)
+
         except Exception as e:
             yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
         finally:
