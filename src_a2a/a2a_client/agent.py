@@ -249,7 +249,6 @@ class Agent:
             if "</" in response:
                 continue
             elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
-                print("得到了思考结果")
                 yield {"type": "thought", "content": chunk}
         agents = self.extract_agents(response)
 

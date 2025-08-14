@@ -18,7 +18,6 @@ from sqlalchemy.future import select
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
-print(DATABASE_URL)
 db = DatabaseManager(DATABASE_URL)
 
 
