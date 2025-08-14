@@ -157,13 +157,9 @@ async def stream_ask_a2a(
         try:
             nonlocal session_id
             predictor = TimeGPT()
-            print("==========================predictor==========================")
-            print(current_user.id)
-            print(session_id)
             messages_find = await mongo.get_session_by_ids(
                 str(current_user.id), session_id
             )
-            print("==========================messages_find==========================")
 
             messages = messages_find["messages"]
             agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
@@ -171,7 +167,6 @@ async def stream_ask_a2a(
                 raise HTTPException(
                     status_code=404, detail="Agent not found for this user"
                 )
-            print(agent_finds)
             agent = Agent(
                 mode="complete",
                 token_stream_callback=None,
@@ -236,8 +231,7 @@ async def stream_ask_a2a(
                     h = params.get("h", 12)
                     time_col = params.get("time_col", "date")
                     target_col = params.get("target_col", "OT")
-                    print("==========================params==========================")
-                    print(params)
+
                     time_fcst_df, fig_data = predictor.predict(
                         df=df, h=h, time_col=time_col, target_col=target_col
                     )
@@ -322,7 +316,6 @@ async def stream_ask_a2a(
                     yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
             elif isAgent:
-                print("=============================================normal")
                 question_message = f"""这是user_id:
                     {current_user.id}
                     这是历史对话消息：
@@ -369,8 +362,6 @@ async def stream_ask_a2a(
                     str(current_user.id), session_id
                 )
                 question_message = messages_find["messages"]
-                print("=========================普通问答")
-                print(question_message)
                 message_text = ""
                 async for result in llm_client.get_stream_response(
                     question_message, llm_url=core_llm_url, api_key=core_llm_key

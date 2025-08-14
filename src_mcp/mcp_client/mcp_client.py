@@ -18,7 +18,6 @@ from sqlalchemy.future import select
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
-print(DATABASE_URL)
 db = DatabaseManager(DATABASE_URL)
 
 
@@ -115,10 +114,6 @@ class ChatSession:
         """
 
     async def _get_agent_response(self, messages, mcp_server_id, agent_id):
-        print("======================mcp_server_id================================")
-        print(mcp_server_id)
-        print("======================agent_id================================")
-        print(agent_id)
         # 异步查询AgentCard
         agent_find = await db.fetch_one(AgentCard, id=agent_id)
         logging.info(f"Agent config: {agent_find.llm_url}, {agent_find.llm_key}")
@@ -150,8 +145,7 @@ class ChatSession:
             tools_description += "\n".join(
                 [self.format_for_llm(tool) for tool in tools]
             )
-        print("======================tools_description================================")
-        print(tools_description)
+
         system_message = (
             "You are a helpful assistant  have access to these services and the tools they offer:\n\n"
             # 工具描述prompt

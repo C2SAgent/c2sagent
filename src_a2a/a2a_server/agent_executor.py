@@ -45,11 +45,6 @@ class CoreAgentExecutor(AgentExecutor):
         context: RequestContext,
         event_queue: EventQueue,
     ) -> None:
-
-        print("=========================动态self.mcp_server_id")
-        print(self.mcp_server_id)
-        print(self.agent_index)
-
         if self.mcp_server_id:
             self.agent = Agent(
                 mode="complete",
@@ -80,8 +75,6 @@ class CoreAgentExecutor(AgentExecutor):
                 )
             else:
                 event = f"该智能体未配置LLM，暂不可用，你只需对应用户描述作答即可，并需要提醒用户所需要用到的智能体未配置llm，这是该智能体的名称：{self.agent_find.name}"
-        print("=================================query")
-        print(query)
 
         await event_queue.enqueue_event(
             TaskStatusUpdateEvent(

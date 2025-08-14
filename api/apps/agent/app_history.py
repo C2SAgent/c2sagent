@@ -57,7 +57,6 @@ async def do_load_session(
         )
     finally:
         await mongo.close()
-    print(session)
     return BaseResponse(data=session)
 
 

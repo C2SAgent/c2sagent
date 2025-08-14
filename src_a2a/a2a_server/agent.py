@@ -48,9 +48,6 @@ class Agent:
             called_tools (list[dict]): The tools that have been called.
         """
 
-        print(
-            "=====================call_mcp_client_bilibili==========================="
-        )
         result = await call_mcp_client(
             self.mcp_url,
             query=question,
