@@ -28,27 +28,18 @@ class LLMClient:
         self.llm_url = llm_url
         self.api_key = api_key
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
-        print("大模型开始了流式")
-        print(messages)
+
         response = await client.chat.completions.create(
             messages=messages, stream=True, model="deepseek-reasoner"
         )
         async for chunk in response:
             delta = chunk.choices[0].delta
             if delta.content:
-                print("模型输出了：")
-                print(delta.content)
                 yield delta.content
 
     async def get_response(
         self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ) -> str:
-        time.sleep(1)
-        # if llm_url:
-        print("==============================get_response=============================")
-        print(llm_url + "======")
-        print(api_key + "======")
-        print(messages)
         llm_url = llm_url
         api_key = api_key
 
@@ -68,12 +59,10 @@ class LLMClient:
 
     async def get_stream_com_response(
         self, messages: list[dict[str, str]], llm_url=None, api_key=None
-    ) -> str:
+    ) -> AsyncGenerator[str, None]:
         self.llm_url = llm_url
         self.api_key = api_key
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
-        print("大模型开始了流式")
-        print(messages)
         response = await client.chat.completions.create(
             messages=messages, stream=True, model="deepseek-reasoner"
         )

@@ -244,7 +244,6 @@ class Agent:
 
         response = ""
 
-        print("==============开始流式思考=================")
         async for chunk in self.decide_streaming(question, agent_prompt, agent_answers):
             response += chunk
             if "</" in response:
@@ -252,9 +251,6 @@ class Agent:
             elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
                 print("得到了思考结果")
                 yield {"type": "thought", "content": chunk}
-        print("=====================================response")
-        print(response)
-        print("=======================================response")
         agents = self.extract_agents(response)
 
         if agents:
@@ -288,7 +284,6 @@ class Agent:
         core_llm_key = user_find.core_llm_key
         llm_client = LLMClient(core_llm_url, core_llm_key)
 
-        print("===================call_llm_steaming===================")
         async for chunk in llm_client.get_stream_response(
             prompt, core_llm_url, core_llm_key
         ):
@@ -321,7 +316,6 @@ class Agent:
             agent_prompt=agents_prompt,
             call_agent_prompt=call_agent_prompt,
         )
-        print("=================decide_streaming===================")
         prompt_list = [{"role": "system", "content": prompt}]
         async for chunk in self.call_llm_streaming(prompt_list):
             yield chunk
