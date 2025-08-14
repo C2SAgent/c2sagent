@@ -33,11 +33,11 @@ C2S Agent 是一个AI Agent构建平台，提供在线可配置的Agent，MCP服
 
 ## 💡 一些好用的工具（持续优化中）
 
-`1` 基于A2A协议的单端口多智能体服务
+`1` 基于A2A协议的单端口可配置多Agent服务
    - [a2a_server](https://github.com/C2SAgent/c2sagent/blob/main/src_a2a/a2a_server/__init__.py) 扩展了A2A协议的功能，如果您需要，可以修改后用于你的项目
    - 您可以用它实现一个端口建设多个A2A服务，只需要传递一个agent_index。
 
-`2` 基于MCP协议的单端口多MCP服务
+`2` 基于MCP协议的单端口可配置多MCP服务
    - [mcp_server](https://github.com/C2SAgent/c2sagent/blob/main/src_mcp/mcp_server/server/mcp_server.py) 扩展了MCP协议的功能，如果您需要，可以修改后用于你的项目
    - 您可以用它实现一个端口建设多个MCP服务，只需要传递一个mcp_server_id。
 
