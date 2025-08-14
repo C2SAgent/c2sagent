@@ -40,6 +40,10 @@
           <input type="checkbox" v-model="isTimeSeriesProxy" />
           时序预测分析
         </label>
+        <label class="time-series-toggle">
+          <input type="checkbox" v-model="isAgentProxy" />
+          智能体团队
+        </label>
         <label class="file-upload-button">
           <input type="file" @change="handleFileChange" accept=".csv, .txt" style="display: none;" ref="fileInput" />
           上传文件
@@ -80,16 +84,25 @@ export default defineComponent({
     isTimeSeries: {
       type: Boolean,
       required: true
+    },
+    isAgent: {
+      type: Boolean,
+      required: true
     }
   },
-  emits: ['send-message', 'upload-file', 'update:isTimeSeries'],
+  emits: ['send-message', 'upload-file', 'update:isTimeSeries', 'update:isAgent'],
   setup(props, { emit }) {
     const newMessage = ref('');
     const messagesContainer = ref<HTMLElement | null>(null);
     const uploadedFile = ref<File | null>(null);
     const isTimeSeries = ref(false);
+    const isAgent = ref(false);
     watch(() => props.isTimeSeries, (newVal) => {
       emit('update:isTimeSeries', newVal);
+    });
+
+    watch(() => props.isAgent, (newVal) => {
+      emit('update:isAgent', newVal);
     });
 
     const fileInput = ref<HTMLInputElement | null>(null);
@@ -97,6 +110,11 @@ export default defineComponent({
     const isTimeSeriesProxy = computed({
       get: () => props.isTimeSeries,
       set: (val) => emit('update:isTimeSeries', val)
+    });
+
+    const isAgentProxy = computed({
+      get: () => props.isAgent,
+      set: (val) => emit('update:isAgent', val)
     });
 
     const sendMessage = () => {
@@ -154,10 +172,12 @@ export default defineComponent({
       messagesContainer,
       uploadedFile,
       isTimeSeries,
+      isAgent,
       sendMessage,
       handleFileChange,
       formatTime,
       isTimeSeriesProxy,
+      isAgentProxy,
       fileInput
     };
   }

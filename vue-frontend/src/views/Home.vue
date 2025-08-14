@@ -14,9 +14,11 @@
       :sessionTitle="activeSession.title"
       :isWaiting="isWaiting"
       :isTimeSeries="isTimeSeries"
+      :isAgent="isAgent"
       @send-message="handleSendMessage"
       @upload-file="handleFileUpload"
       @update:isTimeSeries="val => isTimeSeries = val"
+      @update:isAgent="val => isAgent = val"
     />
     <div v-else class="empty-chat-area">
       <p>请选择或创建一个新的任务</p>
@@ -47,6 +49,7 @@ export default defineComponent({
     const isWaiting = ref(false);
     const uploadedFile = ref<File | undefined>(undefined);
     const isTimeSeries = ref(false);
+    const isAgent = ref(false);
 
     watch(activeSessionId, async (newId) => {
       if (newId) {
@@ -110,6 +113,7 @@ const sendMessage = async (sessionId: string, content: string) => {
       sessionId,
       content,
       isTimeSeries.value,
+      isAgent.value,
       uploadedFile.value
     );
 
@@ -250,6 +254,7 @@ const sendMessage = async (sessionId: string, content: string) => {
       activeSession,
       isWaiting,
       isTimeSeries,
+      isAgent,
       handleSelectSession,
       handleNewChat,
       handleSendMessage,
