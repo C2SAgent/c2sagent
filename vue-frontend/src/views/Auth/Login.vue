@@ -6,19 +6,22 @@ import { useAuthStore } from '@/stores/auth';
 const router = useRouter();
 const authStore = useAuthStore();
 
-// 确保字段名与后端接口一致（可能是username或name）
 const form = ref({
-  username: '',  // 如果后端需要name就改为name
+  username: '',
   password: '',
 });
 
 const error = ref('');
 const isLoading = ref(false);
 
-async function handleSubmit() {
-  // 调试：先打印表单数据
-  console.log('提交的数据:', form.value);
+// 新增一键填充函数
+const fillDemoCredentials = () => {
+  form.value.username = 'agent';
+  form.value.password = 'agent';
+  error.value = '';
+};
 
+async function handleSubmit() {
   if (!form.value.username || !form.value.password) {
     error.value = '请填写用户名和密码';
     return;
@@ -27,14 +30,7 @@ async function handleSubmit() {
   try {
     isLoading.value = true;
     error.value = '';
-    
-    // 方式1：直接传递整个form对象（推荐）
     await authStore.login(form.value);
-    
-    // 方式2：如果authStore.login需要单独参数
-    // await authStore.login(form.value.username, form.value.password);
-    
-    // 登录成功后跳转
     const redirect = router.currentRoute.value.query.redirect as string;
     router.push(redirect || '/');
   } catch (err) {
@@ -47,50 +43,96 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="auth-page">
-    <h1>登录</h1>
-    <form @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label for="username">用户名</label>
-        <input
-          id="username"
-          v-model="form.username"
-          type="text"
-          required
-          autocomplete="username"
-          @input="error = ''"
-        />
+  <div class="page-container">
+    <div class="auth-page">
+      <h2 style="display: flex; align-items: center; gap: 8px">
+        <img src="../../assets/logo.png" alt="logo" class="logo" />
+        <span>C2S Agent</span>
+      </h2>
+      <form @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input
+            id="username"
+            v-model="form.username"
+            type="text"
+            required
+            autocomplete="username"
+            @input="error = ''"
+          />
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            required
+            autocomplete="current-password"
+            @input="error = ''"
+          />
+        </div>
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+        <button type="submit" :disabled="isLoading">
+          {{ isLoading ? '登录中...' : '登录' }}
+        </button>
+      </form>
+      <div class="demo-account">
+        <p style="
+          margin: 0rem 0;
+          display: flex;
+          align-items: baseline; /* 关键修改 */
+          justify-content: center;
+          gap: 8px;
+        ">
+          <span>体验账号: agent | 体验密码: agent</span>
+          <a
+            @click.prevent="fillDemoCredentials"
+            style="
+              cursor: pointer;
+              color: #4f46e5;
+              display: inline-flex; /* 关键修改 */
+              align-items: center;
+              height: -1em; /* 强制与文字同高 */
+              margin-top: 0;
+            "
+          >
+            [一键填入]
+          </a>
+        </p>
       </div>
-      <div class="form-group">
-        <label for="password">密码</label>
-        <input
-          id="password"
-          v-model="form.password"
-          type="password"
-          required
-          autocomplete="current-password"
-          @input="error = ''"
-        />
-      </div>
-      <div v-if="error" class="error-message">
-        {{ error }}
-      </div>
-      <button type="submit" :disabled="isLoading">
-        {{ isLoading ? '登录中...' : '登录' }}
-      </button>
-    </form>
-    <router-link to="/register">没有账号？立即注册</router-link>
+      <router-link to="/register">没有账号？立即注册</router-link>
+    </div>
   </div>
 </template>
 
+<!-- 保持原有样式完全不变 -->
 <style scoped>
+.page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  background: url('../../assets/bg.jpeg') no-repeat center center;
+  background-size: cover;
+}
+
 .auth-page {
+  width: 100%;
   max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
+  padding: 4rem;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 20px 20px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+  height: 48px;
+  width: auto;
 }
 
 .form-group {
@@ -104,20 +146,23 @@ label {
 }
 
 input {
-  width: 100%;
+  width: 93%;
+  height: 1rem;
   padding: 0.75rem;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  background: #f5f5f5;
+  border-radius: 8px;
   font-size: 1rem;
 }
 
 button {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.65rem;
+  margin-top: 0.75rem;
   background-color: #4f46e5;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -144,5 +189,19 @@ a {
   text-align: center;
   color: #4f46e5;
   text-decoration: none;
+}
+
+.demo-account {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 4px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.demo-account p {
+  margin: 0.5rem 0;
 }
 </style>

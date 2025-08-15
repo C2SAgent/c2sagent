@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="http://www.c2sagent.com/"><img src="./.github/imgs/logo.png" width="120" height="120" alt="fastgpt logo"></a>
+<a href="http://www.c2sagent.com/"><img src="./.github/imgs/logo.png" width="120" height="120" alt="c2sagent logo"></a>
 
 # C2S Agent
 

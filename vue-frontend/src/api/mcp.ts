@@ -6,7 +6,6 @@ import api from './index';
 export const McpApi = {
   // 创建MCP服务
   async create(name: string) {
-    console.log(name)
     return await api.post('/manager_mcp/create', name)
   },
 
@@ -21,7 +20,6 @@ export const McpApi = {
       mcp_server_id: mcpId,
       tool: JSON.parse(toolJson) // 确保是有效的JSON
     }
-    console.log(body)
     return await api.post('/manager_mcp/corr_tool', body)
   },
 
@@ -30,7 +28,6 @@ export const McpApi = {
       mcp_server_id: mcpId,
       tool_name: tool_name // 确保是有效的JSON
     }
-    console.log(body)
     return await api.post('/manager_mcp/discorr_tool', body)
   },
 
