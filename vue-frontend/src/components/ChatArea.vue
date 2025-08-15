@@ -9,7 +9,7 @@
         class="message"
         :class="message.role"
       >
-        <div v-if="message.type === 'text'" class="message-content">{{ message.content }}</div>
+        <div v-if="message.type === 'text'" class="message-content" v-html="renderMarkdown(message.content)"></div>
         <div v-else-if="message.type === 'doc'" class="message-content">
           <a :href="message.content" target="_blank">查看文档</a>
         </div>
@@ -18,7 +18,7 @@
         </div>
         <div v-else-if="message.type === 'thought'" class="message-content">
           <div class="thought-title">思考</div>
-          <div class="thought-content">{{ message.content }}</div>
+          <div class="thought-content" v-html="renderMarkdown(message.content)"></div>
         </div>
         <div class="message-time">
           {{ formatTime(message.timestamp) }}
@@ -64,6 +64,8 @@
 
 <script lang="ts">
 import { defineComponent, type PropType, ref, watch, nextTick, onMounted, computed } from 'vue';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import type { ChatMessage } from '@/types/chat';
 
 export default defineComponent({
@@ -117,6 +119,9 @@ export default defineComponent({
       set: (val) => emit('update:isAgent', val)
     });
 
+    const renderMarkdown = (content: string) => {
+      return DOMPurify.sanitize(marked(content));
+    };
     const sendMessage = () => {
       if (newMessage.value.trim() || uploadedFile.value) {
         emit('send-message', newMessage.value.trim());
@@ -173,6 +178,7 @@ export default defineComponent({
       uploadedFile,
       isTimeSeries,
       isAgent,
+      renderMarkdown,
       sendMessage,
       handleFileChange,
       formatTime,
@@ -404,4 +410,93 @@ export default defineComponent({
 .thought-content {
   color: #999; /* 浅灰色 */
 }
+
+.message-content >>> p {
+  margin: 0.5em 0;
+}
+
+.message-content >>> h1,
+.message-content >>> h2,
+.message-content >>> h3,
+.message-content >>> h4,
+.message-content >>> h5,
+.message-content >>> h6 {
+  margin: 1em 0 0.5em 0;
+  font-weight: bold;
+}
+
+.message-content >>> h1 {
+  font-size: 1.5em;
+}
+
+.message-content >>> h2 {
+  font-size: 1.3em;
+}
+
+.message-content >>> h3 {
+  font-size: 1.1em;
+}
+
+.message-content >>> ul,
+.message-content >>> ol {
+  padding-left: 2em;
+  margin: 0.5em 0;
+}
+
+.message-content >>> li {
+  margin: 0.25em 0;
+}
+
+.message-content >>> code {
+  background-color: #f3f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-family: monospace;
+}
+
+.message-content >>> pre {
+  background-color: #f3f4f6;
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.message-content >>> pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.message-content >>> blockquote {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: #64748b;
+}
+
+.message-content >>> a {
+  color: #4299e1;
+  text-decoration: none;
+}
+
+.message-content >>> a:hover {
+  text-decoration: underline;
+}
+
+.message-content >>> table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.message-content >>> th,
+.message-content >>> td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5em;
+}
+
+.message-content >>> th {
+  background-color: #f8fafc;
+}
+
 </style>

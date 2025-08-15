@@ -4,7 +4,6 @@ import type { UserCreate, Token, LoginForm, User } from '@/types/auth';
 
 const AuthAPI = {
   async login(formData: LoginForm): Promise<Token> {
-    console.log(formData);
     const response = await api.post<Token>('/app_auth/token', new URLSearchParams({
       username: formData.username,
       password: formData.password,

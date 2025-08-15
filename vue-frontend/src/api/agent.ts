@@ -62,8 +62,6 @@ export const AgentApi = {
     isAgent: boolean,
     file?: File
   ): Promise<ReadableStream> {
-    console.log("调用了askAgentStreaming")
-    console.log(isTimeSeries)
     const formData = new FormData();
     if(file){
       formData.append("files", file);
@@ -75,7 +73,7 @@ export const AgentApi = {
     formData.append("isDocAnalysis", "false");
     const token = localStorage.getItem('access_token');
     // console.log(token)
-    const response = await fetch('http://101.126.142.204:8000/app_a2a/ask_a2a_streaming', {
+    const response = await fetch('https://api.c2sagent.com/app_a2a/ask_a2a_streaming', {
       method: 'POST',
       body: formData,
       headers: {

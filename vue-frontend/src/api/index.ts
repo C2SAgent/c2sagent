@@ -1,6 +1,6 @@
-import axios, { 
-  type AxiosInstance, 
-  type InternalAxiosRequestConfig, 
+import axios, {
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
   type AxiosResponse,
   type AxiosError
 } from 'axios';
@@ -8,7 +8,7 @@ import AuthAPI from './auth';
 import type { Token } from '@/types/auth';
 
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://101.126.142.204:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.c2sagent.com',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -33,21 +33,21 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    
+
     // 检查是否是401错误且不是刷新token请求
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refresh_token');
-      
+
       if (refreshToken) {
         try {
           // 明确指定返回类型
           const response = await api.post<Token>('/refresh-token', { refresh_token: refreshToken });
           const { access_token, refresh_token } = response.data;
-          
+
           localStorage.setItem('access_token', access_token);
           localStorage.setItem('refresh_token', refresh_token);
-          
+
           // 重试原始请求
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
@@ -60,7 +60,7 @@ api.interceptors.response.use(
         }
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

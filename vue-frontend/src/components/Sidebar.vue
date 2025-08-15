@@ -1,15 +1,10 @@
 <template>
   <div class="sidebar">
     <div class="sidebar-top">
-      <div class="logo" style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-family: 'Arial Rounded MT Bold', 'Segoe UI', sans-serif;
-                    font-weight: 800;
-                    font-size: 24px;
-                    letter-spacing: 0.5px;">
-          C2S Agent
-        </span>
-        <img src="../assets/logo.png" alt="logo" style="height: 24px; width: auto;" />
-      </div>
+      <h2 style="display: flex; align-items: center; gap: 8px">
+        <span>C2S Agent</span>
+        <img src="../assets/logo.png" alt="logo" class="logo" />
+      </h2>
       <button class="new-chat-btn" @click="emitNewChat">
         <span>+</span> 新任务
       </button>
@@ -189,5 +184,9 @@ export default defineComponent({
 .sidebar-bottom button span {
   margin-right: 0.75rem;
   font-size: 1.1rem;
+}
+.logo {
+  height: 48px;
+  width: auto;
 }
 </style>

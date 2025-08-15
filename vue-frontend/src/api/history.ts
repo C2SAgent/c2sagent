@@ -8,12 +8,11 @@ export const HistoryApi = {
     let result: ChatSession = response.data.data
     return result
   },
-  
+
   // 获取智能体列表
   async list(): Promise<ChatSession[]> {
     let response = await api.get('/app_history/list')
     let result: ChatSession[] = response.data.data
-    console.log(result)
     return result
   },
 
