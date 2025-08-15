@@ -31,11 +31,21 @@ C2S Agent 是一个AI Agent构建平台，提供在线可配置的Agent，MCP服
    - 您只需要上传带头的CSV文件，给一段你想要的描述，即可进行预测和分析
    - 他会返回预测的数据和图片
 
+## 💡 一些好用的工具（持续优化中）
+
+`1` 基于A2A协议的单端口可配置多Agent服务
+   - [a2a_server](https://github.com/C2SAgent/c2sagent/blob/main/src_a2a/a2a_server/__init__.py) 扩展了A2A协议的功能，如果您需要，可以修改后用于你的项目
+   - 您可以用它实现一个端口建设多个A2A服务，只需要传递一个agent_index。
+
+`2` 基于MCP协议的单端口可配置多MCP服务
+   - [mcp_server](https://github.com/C2SAgent/c2sagent/blob/main/src_mcp/mcp_server/server/mcp_server.py) 扩展了MCP协议的功能，如果您需要，可以修改后用于你的项目
+   - 您可以用它实现一个端口建设多个MCP服务，只需要传递一个mcp_server_id。
 
 
 ## 👨‍💻 开发
 
-项目技术栈：Python + MongoDB + PostgreSQL
+项目基础技术栈：Python + MongoDB + PostgreSQL
+AI技术栈：A2A + MCP
 
 - **⚡ 快速部署**
 
