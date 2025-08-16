@@ -80,7 +80,7 @@ class Agent:
             called_tools (list[dict]): The tools that have been called.
         """
         async for chunk in call_mcp_client_streaming(
-            self.mcp_url,
+            "http://localhost:8000/app_mcp/ask_mcp_streaming",
             query=question,
             agent_index=self.agent_index,
             mcp_server_id=self.mcp_server_id,
@@ -98,5 +98,5 @@ class Agent:
 
         """  # noqa: E501
 
-        async for chunk in await self.decide_streaming(question):
+        async for chunk in self.decide_streaming(question):
             yield chunk
