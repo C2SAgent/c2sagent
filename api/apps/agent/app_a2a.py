@@ -340,15 +340,25 @@ async def stream_ask_a2a(
                         yield json.dumps(
                             {"event": "text", "data": result["content"]}
                         ) + "\n\n"
+                    if result["type"] == "end":
+                        message_thought = {
+                            "role": "system",
+                            "content": message_chunk,
+                            "type": "thought",
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                        await mongo.add_message(session_id, message_thought)
+                        message_chunk = ""
+                        yield json.dumps({"event": "end", "data": ""}) + "\n\n"
 
-                # for message in messages:
-                message_thought = {
-                    "role": "system",
-                    "content": message_chunk,
-                    "type": "thought",
-                    "timestamp": datetime.now().isoformat(),
-                }
-                await mongo.add_message(session_id, message_thought)
+                # # for message in messages:
+                # message_thought = {
+                #     "role": "system",
+                #     "content": message_chunk,
+                #     "type": "thought",
+                #     "timestamp": datetime.now().isoformat(),
+                # }
+                # await mongo.add_message(session_id, message_thought)
 
                 message_result = {
                     "role": "system",

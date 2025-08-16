@@ -6,34 +6,17 @@ from a2a.server.request_handlers.default_request_handler import (
     DefaultRequestHandler,
 )
 from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
-from a2a.types import (
-    AgentCapabilities,
-    AgentCard,
-    AgentSkill,
-    GetTaskRequest,
-    GetTaskResponse,
-    SendMessageRequest,
-    SendMessageResponse,
-)
+from a2a.types import AgentCapabilities, AgentCard
 from starlette.applications import Starlette
-from starlette.routing import Route, Router, Mount
+from starlette.routing import Route, Router
 from starlette.requests import Request
-from typing import Any, Callable, Dict, List, Optional
-import json
+from typing import Any, List
 from a2a.server.request_handlers.jsonrpc_handler import JSONRPCHandler
 
 from core.db.base_sync import DatabaseManager
-from model.model_agent import (
-    AgentCardAndInputMode,
-    AgentCardAndOutputMode,
-    AgentCardAndSkill,
-    InputMode,
-    Skill,
-)
-from model.model_agent import AgentCard as AgentCard_
-from a2a.server.request_handlers.jsonrpc_handler import RequestHandler
 
-# from src_a2a.a2a_server.__main__ import A2ARequestHandler
+from model.model_agent import AgentCard as AgentCard_
+
 from src_a2a.a2a_server.agent_executor import CoreAgentExecutor
 from starlette.responses import JSONResponse
 
@@ -56,7 +39,7 @@ class DynamicContextBuilder:
         self.original_builder = original_builder
         self.agent_index = agent_index
 
-    async def build(self, request: Request):
+    def build(self, request: Request):
         """
         构建请求上下文
 
@@ -65,7 +48,7 @@ class DynamicContextBuilder:
         """
         # 如果存在原始上下文构建器，使用它构建上下文
         if self.original_builder and hasattr(self.original_builder, "build"):
-            context = await self.original_builder.build(request)
+            context = self.original_builder.build(request)
         else:
             context = None
 
@@ -187,7 +170,7 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
             agent_index = request.path_params.get("agent_index")
             self.task_store = InMemoryTaskStore()
             self.http_handler.agent_executor = CoreAgentExecutor(
-                agent_index=agent_index
+                agent_index=agent_index, isStreaming=True
             )
 
             if not agent_index:
@@ -214,10 +197,6 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
                 original_context_builder, agent_index
             )
 
-            # 处理请求
-            # self.handler.request_handler = JSONRPCHandler(
-            #     agent_card=self.agent_card, request_handler=self.http_handler
-            # )
             response = await self._handle_requests(request)
             return response
         except Exception as e:
@@ -266,7 +245,7 @@ def main(host: str, port: int):
 
     task_store = InMemoryTaskStore()
     request_handler = DefaultRequestHandler(
-        agent_executor=CoreAgentExecutor(1),
+        agent_executor=CoreAgentExecutor(1, True),
         task_store=task_store,
     )
     server = DatabaseA2AStarletteApplication(db, request_handler)

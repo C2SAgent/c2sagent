@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from collections.abc import Callable, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from pathlib import Path
 from typing import Literal
 from uuid import uuid4
@@ -197,7 +197,6 @@ class Agent:
             str: The streaming response from the agent.
         """
 
-        # client = self.remote_agent_connections[agent_name]
         async with httpx.AsyncClient(timeout=500) as httpx_client:
             client = A2AClient(httpx_client, agent_card=agent_card, url=agent_card.url)
             message_id = str(uuid.uuid4())
@@ -224,8 +223,11 @@ class Agent:
                 message_request
             )
 
+            # send_response: SendMessageResponse = await client.send_message_streaming(
+            #     message_request
+            # )
+
             return send_response.root.result.status.message.parts[0].root.text
-            # return send_response
 
     async def completion(self, question: str):
         """Stream the process of answering a question, possibly involving multiple agents.
@@ -250,14 +252,29 @@ class Agent:
                 continue
             elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
                 yield {"type": "thought", "content": chunk}
+
+        yield {"type": "end", "content": ""}
         agents = self.extract_agents(response)
 
         if agents:
             for agent in agents:
                 agent_card = agents_registry[agent["name"]]
-                agent_response = await self.send_message_to_an_agent(
+                agent_response = ""
+                async for chunk in self.send_message_to_an_agent_streaming(
                     agent_card, agent["prompt"]
-                )
+                ):
+                    agent_response += chunk["content"]
+                    # TODO: 增加状态审核
+                    # yield {"type": "text", "content": chunk}
+                    print("=======================agent思考")
+                    print(chunk)
+                    yield chunk
+                yield {"type": "end", "content": ""}
+
+                # agent_response = await self.send_message_to_an_agent(
+                #     agent_card, agent["prompt"]
+                # )
+
                 agent_answers.append(
                     {
                         "name": agent["name"],
@@ -265,11 +282,12 @@ class Agent:
                         "answer": agent_response,
                     }
                 )
-            yield {"type": "text", "content": agent_answers}
+            # yield {"type": "text", "content": agent_answers}
         else:
             yield {"type": "text", "content": self.extract_response(response)}
+            yield {"type": "end", "content": ""}
 
-    async def call_llm_streaming(self, prompt: str) -> str:
+    async def call_llm_streaming(self, prompt: str) -> AsyncGenerator[str, None]:
         """Call the LLM with the given prompt and return the response as a string or generator.
 
         Args:
@@ -293,7 +311,7 @@ class Agent:
         question: str,
         agents_prompt: str,
         called_agents: list[dict] | None = None,
-    ) -> Generator[str, None]:
+    ) -> AsyncGenerator[str, None]:
         """Decide which agent(s) to use to answer the question.
 
         Args:
@@ -345,59 +363,22 @@ class Agent:
             streaming_request = SendStreamingMessageRequest(
                 id=str(uuid4().hex), params=message
             )
+            # TODO: 增加状态审查 如果为working，那么，则为thought返回
             async for chunk in client.send_message_streaming(streaming_request):
                 if isinstance(
                     chunk.root, SendStreamingMessageSuccessResponse
                 ) and isinstance(chunk.root.result, TaskStatusUpdateEvent):
+                    state = chunk.root.result.status.state
                     message = chunk.root.result.status.message
-                    if message:
-                        yield message.parts[0].root.text
-
-    async def stream(self, question: str):
-        """Stream the process of answering a question, possibly involving multiple agents.
-
-        Args:
-            question (str): The question to answer.
-
-        Yields:
-            str: Streaming output, including agent responses and intermediate steps.
-        """  # noqa: E501
-        agent_answers: list[dict] = []
-        for _ in range(3):
-            agents_registry, agent_prompt = await self.get_agents()
-            response = ""
-            for chunk in await self.decide_streaming(
-                question, agent_prompt, agent_answers
-            ):
-                response += chunk
-                if self.token_stream_callback:
-                    self.token_stream_callback(chunk)
-                yield chunk
-
-            agents = self.extract_agents(response)
-            if agents:
-                for agent in agents:
-                    agent_response = ""
-                    agent_card = agents_registry[agent["name"]]
-                    yield f'<Agent name="{agent["name"]}">\n'
-                    async for chunk in self.send_message_to_an_agent_streaming(
-                        agent_card, agent["prompt"]
-                    ):
-                        agent_response += chunk
-                        if self.token_stream_callback:
-                            self.token_stream_callback(chunk)
-                        yield chunk
-                    yield "</Agent>\n"
-                    match = re.search(
-                        r"<Answer>(.*?)</Answer>", agent_response, re.DOTALL
-                    )
-                    answer = match.group(1).strip() if match else agent_response
-                    agent_answers.append(
-                        {
-                            "name": agent["name"],
-                            "prompt": agent["prompt"],
-                            "answer": answer,
-                        }
-                    )
-            else:
-                return
+                    if state == "working":
+                        if message:
+                            yield {
+                                "type": "thought",
+                                "content": message.parts[0].root.text,
+                            }
+                    if state == "completed":
+                        if message:
+                            yield {
+                                "type": "text",
+                                "content": message.parts[0].root.text,
+                            }

@@ -1,4 +1,5 @@
 import asyncio
+import json
 from pathlib import Path
 from typing import AsyncGenerator
 import aiohttp
@@ -38,9 +39,9 @@ async def call_mcp_client(url: str, query: str, agent_index, mcp_server_id) -> s
 
 
 async def call_mcp_client_streaming(
-    url: str, query: str, agent_index, mcp_server_id
-) -> AsyncGenerator[str, None]:
-    """Call an MCP Client with streaming response, yielding chunks as they arrive."""
+    url: str, query: str, agent_index: int, mcp_server_id: int
+) -> AsyncGenerator[dict, None]:
+    """调用MCP客户端并流式接收响应，解析每个JSON chunk"""
     headers = {"Content-Type": "application/json"}
 
     try:
@@ -56,11 +57,23 @@ async def call_mcp_client_streaming(
             ) as response:
                 response.raise_for_status()
 
-                async for chunk in response.content.iter_any():
-                    yield chunk.decode("utf-8")
+                buffer = ""
+                async for chunk_bytes in response.content.iter_any():
+                    chunk_str = chunk_bytes.decode("utf-8")
+                    buffer += chunk_str
+
+                    # 按行分割处理NDJSON
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        if line.strip():
+                            try:
+                                yield json.loads(line)
+                            except json.JSONDecodeError as e:
+                                print(f"JSON解析错误: {e}, 原始数据: {line}")
+                                continue
 
     except Exception as e:
-        print(f"Error in streaming request: {str(e)}")
+        print(f"流式请求错误: {str(e)}")
         raise
 
 
