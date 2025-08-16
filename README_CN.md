@@ -14,8 +14,8 @@ C2S Agent 是一个AI Agent构建平台，提供在线可配置的Agent，MCP服
 
 |                                    |                                    |
 | ---------------------------------- | ---------------------------------- |
-| ![Demo](./.github/imgs/login.png) | ![Demo](./.github/imgs/main.png) |
-| ![Demo](./.github/imgs/agent.png) | ![Demo](./.github/imgs/mcp.png) |
+| ![Demo](./asset/imgs/login.png) | ![Demo](./asset/imgs/main.png) |
+| ![Demo](./asset/imgs/agent.png) | ![Demo](./asset/imgs/mcp.png) |
 
 ## 💡 功能描述
 
