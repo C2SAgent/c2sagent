@@ -245,13 +245,21 @@ class Agent:
         # response = await self.decide(question, agent_prompt, agent_answers)
 
         response = ""
-
+        flag = 1
         async for chunk in self.decide_streaming(question, agent_prompt, agent_answers):
-            response += chunk
+            if chunk["type"] == "thought":
+                yield chunk
+                continue
+
+            if flag == 1:
+                yield {"type": "thought", "data": "\n"}
+                flag = 0
+
+            response += chunk["content"]
             if "</" in response:
                 continue
             elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
-                yield {"type": "thought", "content": chunk}
+                yield {"type": "thought", "content": chunk["content"]}
 
         yield {"type": "end", "content": ""}
         agents = self.extract_agents(response)
@@ -301,7 +309,7 @@ class Agent:
         core_llm_key = user_find.core_llm_key
         llm_client = LLMClient(core_llm_url, core_llm_key)
 
-        async for chunk in llm_client.get_stream_response(
+        async for chunk in llm_client.get_stream_response_reasion_and_content(
             prompt, core_llm_url, core_llm_key
         ):
             yield chunk

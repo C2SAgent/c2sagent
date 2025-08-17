@@ -60,6 +60,7 @@ export const AgentApi = {
     question: string,
     isTimeSeries: boolean,
     isAgent: boolean,
+    isThought: boolean,
     file?: File
   ): Promise<ReadableStream> {
     const formData = new FormData();
@@ -70,6 +71,7 @@ export const AgentApi = {
     formData.append("session_id", session_id);
     formData.append("isTimeSeries", String(isTimeSeries));
     formData.append("isAgent", String(isAgent));
+    formData.append("isThought", String(isThought));
     formData.append("isDocAnalysis", "false");
     const token = localStorage.getItem('access_token');
     // console.log(token)

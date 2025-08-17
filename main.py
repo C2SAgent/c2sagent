@@ -1,4 +1,3 @@
-from multiprocessing import Process
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -81,14 +80,5 @@ app.mount("/app_history", app_history)
 app.mount("/media", media_bilibili)
 
 
-def run_app():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    # app_process = Process(target=run_app)
-
-    # app_process.start()
-
-    # app_process.join()

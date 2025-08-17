@@ -22,3 +22,5 @@ logs/
 .env
 logs/
 tests/
+vue-frontend/
+docker/

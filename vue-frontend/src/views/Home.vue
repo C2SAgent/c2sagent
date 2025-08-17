@@ -15,13 +15,15 @@
       :isWaiting="isWaiting"
       :isTimeSeries="isTimeSeries"
       :isAgent="isAgent"
+      :isThought="isThought"
       @send-message="handleSendMessage"
       @upload-file="handleFileUpload"
       @update:isTimeSeries="val => isTimeSeries = val"
       @update:isAgent="val => isAgent = val"
+      @update:isThought="val => isThought = val"
     />
     <div v-else class="empty-chat-area">
-      <p>请选择或创建一个新的任务</p>
+      <p>{{ t('home.selectOrCreate') }}</p>
     </div>
   </div>
 </template>
@@ -35,6 +37,7 @@ import { HistoryApi } from '@/api/history';
 import { AgentApi } from '@/api/agent';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 
 export default defineComponent({
   name: 'ChatView',
@@ -43,6 +46,7 @@ export default defineComponent({
     ChatArea
   },
   setup() {
+    const { t } = useI18n();
     const sessions = ref<ChatSession[]>([]);
     const activeSessionId = ref<string>('');
     const activeSession = ref<ChatSession | null>(null);
@@ -50,6 +54,7 @@ export default defineComponent({
     const uploadedFile = ref<File | undefined>(undefined);
     const isTimeSeries = ref(false);
     const isAgent = ref(false);
+    const isThought = ref(false);
 
     watch(activeSessionId, async (newId) => {
       if (newId) {
@@ -60,7 +65,7 @@ export default defineComponent({
           );
           activeSession.value = freshData;
         } catch (error) {
-          console.error('加载失败:', error);
+          console.error(t('errors.loadFailed'), error);
           activeSession.value = null;
         }
       } else {
@@ -81,112 +86,107 @@ export default defineComponent({
       uploadedFile.value = file;
     };
 
-const sendMessage = async (sessionId: string, content: string) => {
-  const session = sessions.value.find(s => s.session_id === sessionId);
-  if (!session) return;
+    const sendMessage = async (sessionId: string, content: string) => {
+      const session = sessions.value.find(s => s.session_id === sessionId);
+      if (!session) return;
 
-  // 用户消息
-  const userMessage: ChatMessage = {
-    content,
-    role: 'user',
-    type: 'text',
-    timestamp: new Date()
-  };
-  session.messages.push(userMessage);
+      const userMessage: ChatMessage = {
+        content,
+        role: 'user',
+        type: 'text',
+        timestamp: new Date()
+      };
+      session.messages.push(userMessage);
 
-  isWaiting.value = true;
+      isWaiting.value = true;
 
-  // 定义更新内容的辅助函数
-  const updateContent = (msg: ChatMessage, newData: string) => {
-    const index = session.messages.indexOf(msg);
-    if (index !== -1) {
-      const newMsg = {...msg, content: msg.content + newData};
-      session.messages.splice(index, 1, newMsg);
-      return newMsg; // 返回更新后的消息
-    }
-    return msg;
-  };
+      const updateContent = (msg: ChatMessage, newData: string) => {
+        const index = session.messages.indexOf(msg);
+        if (index !== -1) {
+          const newMsg = {...msg, content: msg.content + newData};
+          session.messages.splice(index, 1, newMsg);
+          return newMsg;
+        }
+        return msg;
+      };
 
-  try {
-    // 获取流式响应
-    const stream = await AgentApi.askAgentStreaming(
-      sessionId,
-      content,
-      isTimeSeries.value,
-      isAgent.value,
-      uploadedFile.value
-    );
+      try {
+        const stream = await AgentApi.askAgentStreaming(
+          sessionId,
+          content,
+          isTimeSeries.value,
+          isAgent.value,
+          isThought.value,
+          uploadedFile.value
+        );
 
-    const reader = stream.getReader();
-    let currentMessage: ChatMessage | null = null;
-    let currentType: string | null = null;
-    let done = false;
+        const reader = stream.getReader();
+        let currentMessage: ChatMessage | null = null;
+        let currentType: string | null = null;
+        let done = false;
 
-    while (!done) {
-      const { value, done: streamDone } = await reader.read();
-      done = streamDone;
+        while (!done) {
+          const { value, done: streamDone } = await reader.read();
+          done = streamDone;
 
-      if (value) {
-        const textDecoder = new TextDecoder();
-        const chunk = textDecoder.decode(value);
-        const lines = chunk.split('\n\n').filter(line => line.trim());
+          if (value) {
+            const textDecoder = new TextDecoder();
+            const chunk = textDecoder.decode(value);
+            const lines = chunk.split('\n\n').filter(line => line.trim());
 
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            const { event, data } = parsed;
+            for (const line of lines) {
+              try {
+                const parsed = JSON.parse(line);
+                const { event, data } = parsed;
 
-            if (event === 'end') {
-              currentMessage = null;
-              currentType = null;
-              continue;
+                if (event === 'end') {
+                  currentMessage = null;
+                  currentType = null;
+                  continue;
+                }
+
+                if (event === 'img' || event === 'doc') {
+                  currentMessage = {
+                    content: data,
+                    role: 'system',
+                    type: event,
+                    timestamp: new Date()
+                  };
+                  session.messages.push(currentMessage);
+                  continue;
+                }
+
+                if (event !== currentType || !currentMessage) {
+                  currentType = event;
+                  currentMessage = {
+                    content: data,
+                    role: 'system',
+                    type: event === 'thought' ? 'thought' : 'text',
+                    timestamp: new Date()
+                  };
+                  session.messages.push(currentMessage);
+                } else {
+                  currentMessage = updateContent(currentMessage, data);
+                }
+              } catch (e) {
+                console.error(t('errors.parseFailed'), e);
+              }
             }
-
-            // 特殊类型处理：img和doc总是创建新消息
-            if (event === 'img' || event === 'doc') {
-              currentMessage = {
-                content: data,
-                role: 'system',
-                type: event,
-                timestamp: new Date()
-              };
-              session.messages.push(currentMessage);
-              continue;
-            }
-
-            if (event !== currentType || !currentMessage) {
-              // 类型变化或没有当前消息，创建新消息
-              currentType = event;
-              currentMessage = {
-                content: data,
-                role: 'system',
-                type: event === 'thought' ? 'thought' : 'text',
-                timestamp: new Date()
-              };
-              session.messages.push(currentMessage);
-            } else {
-              // 类型相同且存在当前消息，使用updateContent更新内容
-              currentMessage = updateContent(currentMessage, data);
-            }
-          } catch (e) {
-            console.error('解析流数据失败:', e);
           }
         }
+      } catch (error) {
+        console.error(t('errors.requestFailed'), error);
+        session.messages.push({
+          content: t('errors.requestFailed'),
+          role: 'system',
+          type: 'text',
+          timestamp: new Date()
+        });
+      } finally {
+        isWaiting.value = false;
+        uploadedFile.value = undefined;
       }
-    }
-  } catch (error) {
-    console.error('请求失败:', error);
-    session.messages.push({
-      content: '请求失败，请重试',
-      role: 'system',
-      type: 'text',
-      timestamp: new Date()
-    });
-  } finally {
-    isWaiting.value = false;
-    uploadedFile.value = undefined;
-  }
-};
+    };
 
     const handleSelectSession = (sessionId: string) => {
       activeSessionId.value = sessionId;
@@ -224,7 +224,7 @@ const sendMessage = async (sessionId: string, content: string) => {
           router.push('/logout')
           break
         default:
-          console.warn(`未知导航目标: ${target}`)
+          console.warn(t('errors.unknownNavTarget', { target }))
       }
     };
 
@@ -236,15 +236,15 @@ const sendMessage = async (sessionId: string, content: string) => {
           activeSessionId.value = ''
         }
       } catch (error) {
-        console.error('删除会话失败:', error)
-        alert('删除会话失败')
+        console.error(t('errors.deleteSessionFailed'), error)
+        alert(t('errors.deleteSessionFailed'))
       }
     }
 
     const authStore = useAuthStore()
 
     onMounted(() => {
-      authStore.init().catch(err => console.error('初始化失败:', err));
+      authStore.init().catch(err => console.error(t('errors.initFailed'), err));
       loadSessions();
     })
 
@@ -255,13 +255,15 @@ const sendMessage = async (sessionId: string, content: string) => {
       isWaiting,
       isTimeSeries,
       isAgent,
+      isThought,
       handleSelectSession,
       handleNewChat,
       handleSendMessage,
       handleNavigation,
       handleDeleteSession,
       handleFileUpload,
-      authStore
+      authStore,
+      t
     };
   }
 });
