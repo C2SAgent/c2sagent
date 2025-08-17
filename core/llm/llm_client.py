@@ -37,6 +37,38 @@ class LLMClient:
             if delta.content:
                 yield delta.content
 
+    async def get_stream_response_chat(
+        self, messages: list[dict[str, str]], llm_url, api_key
+    ) -> AsyncGenerator[str, None]:
+        self.llm_url = llm_url
+        self.api_key = api_key
+        client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
+
+        response = await client.chat.completions.create(
+            messages=messages, stream=True, model="deepseek-chat"
+        )
+        async for chunk in response:
+            delta = chunk.choices[0].delta
+            if delta.content:
+                yield delta.content
+
+    async def get_stream_response_reasion_and_content(
+        self, messages: list[dict[str, str]], llm_url, api_key
+    ) -> AsyncGenerator[str, None]:
+        self.llm_url = llm_url
+        self.api_key = api_key
+        client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
+
+        response = await client.chat.completions.create(
+            messages=messages, stream=True, model="deepseek-reasoner"
+        )
+        async for chunk in response:
+            delta = chunk.choices[0].delta
+            if delta.reasoning_content:
+                yield {"type": "thought", "content": delta.reasoning_content}
+            if delta.content:
+                yield {"type": "text", "content": delta.content}
+
     async def get_response(
         self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ) -> str:
@@ -71,8 +103,8 @@ class LLMClient:
         async for chunk in response:
             delta = chunk.choices[0].delta
             if delta.reasoning_content:
-                result += delta.reasoning_content
+                yield delta.reasoning_content
             if delta.content:
-                yield delta.content
+                result += delta.content
 
         yield result

@@ -1,0 +1,27 @@
+{
+  "common": {
+    "login": "Login",
+    "loggingIn": "Logging in..."
+  },
+  "login": {
+    "title": "User Login",
+    "username": "Username",
+    "password": "Password",
+    "demoAccount": "Account: agent Password: agent",
+    "autoFill": "Auto fill",
+    "noAccount": "No account? Register now"
+  },
+  "home": {
+    "selectOrCreate": "Please select or create a new task"
+  },
+  "errors": {
+    "required": "Please enter username and password",
+    "loginFailed": "Login failed, please check your credentials",
+    "loadFailed": "Failed to load",
+    "parseFailed": "Failed to parse stream data",
+    "requestFailed": "Request failed, please try again",
+    "deleteSessionFailed": "Failed to delete session",
+    "initFailed": "Initialization failed",
+    "unknownNavTarget": "Unknown navigation target: {target}"
+}
+}

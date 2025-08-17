@@ -71,9 +71,7 @@ AI技术栈：A2A + MCP
   git clone https://github.com/C2SAgent/c2sagent.git
   uv venv .venv
   uv sync
-  python main.py
-  python main_a2a.py
-  python main_mcp.py
+  ./start_service.sh start
   ```
 
 

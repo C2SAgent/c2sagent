@@ -2,6 +2,13 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n();
+
+const changeLang = (lang: 'zh-CN' | 'en-US') => {
+  locale.value = lang;
+};
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -14,7 +21,6 @@ const form = ref({
 const error = ref('');
 const isLoading = ref(false);
 
-// 新增一键填充函数
 const fillDemoCredentials = () => {
   form.value.username = 'agent';
   form.value.password = 'agent';
@@ -23,7 +29,7 @@ const fillDemoCredentials = () => {
 
 async function handleSubmit() {
   if (!form.value.username || !form.value.password) {
-    error.value = '请填写用户名和密码';
+    error.value = t('errors.required');
     return;
   }
 
@@ -35,7 +41,7 @@ async function handleSubmit() {
     router.push(redirect || '/');
   } catch (err) {
     console.error('登录错误:', err);
-    error.value = (err as Error).message || '登录失败，请检查用户名和密码';
+    error.value = (err as Error).message || t('errors.loginFailed');
   } finally {
     isLoading.value = false;
   }
@@ -44,6 +50,14 @@ async function handleSubmit() {
 
 <template>
   <div class="page-container">
+    <!-- 添加语言切换下拉框到右上角 -->
+    <div class="language-switcher">
+      <select v-model="locale" @change="changeLang(locale as 'zh-CN' | 'en-US')">
+        <option value="zh-CN">中文</option>
+        <option value="en-US">English</option>
+      </select>
+    </div>
+
     <div class="auth-page">
       <h2 style="display: flex; align-items: center; gap: 8px">
         <img src="../../assets/logo.png" alt="logo" class="logo" />
@@ -51,7 +65,7 @@ async function handleSubmit() {
       </h2>
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label for="username">用户名</label>
+          <label for="username">{{ t('login.username') }}</label>
           <input
             id="username"
             v-model="form.username"
@@ -62,7 +76,7 @@ async function handleSubmit() {
           />
         </div>
         <div class="form-group">
-          <label for="password">密码</label>
+          <label for="password">{{ t('login.password') }}</label>
           <input
             id="password"
             v-model="form.password"
@@ -76,41 +90,41 @@ async function handleSubmit() {
           {{ error }}
         </div>
         <button type="submit" :disabled="isLoading">
-          {{ isLoading ? '登录中...' : '登录' }}
+          {{ isLoading ? t('common.loggingIn') : t('common.login') }}
         </button>
       </form>
       <div class="demo-account">
         <p style="
           margin: 0rem 0;
           display: flex;
-          align-items: baseline; /* 关键修改 */
+          align-items: baseline;
           justify-content: center;
           gap: 8px;
         ">
-          <span>体验账号: agent | 体验密码: agent</span>
+          <span>{{ t('login.demoAccount') }}</span>
           <a
             @click.prevent="fillDemoCredentials"
             style="
               cursor: pointer;
               color: #4f46e5;
-              display: inline-flex; /* 关键修改 */
+              display: inline-flex;
               align-items: center;
-              height: -1em; /* 强制与文字同高 */
+              height: -1em;
               margin-top: 0;
             "
           >
-            [一键填入]
+            [{{ t('login.autoFill') }}]
           </a>
         </p>
       </div>
-      <router-link to="/register">没有账号？立即注册</router-link>
+      <router-link to="/register">{{ t('login.noAccount') }}</router-link>
     </div>
   </div>
 </template>
 
-<!-- 保持原有样式完全不变 -->
 <style scoped>
 .page-container {
+  position: relative; /* 为语言切换器定位做准备 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -119,6 +133,43 @@ async function handleSubmit() {
   box-sizing: border-box;
   background: url('../../assets/bg.jpeg') no-repeat center center;
   background-size: cover;
+}
+
+/* 新增语言切换器样式 */
+.language-switcher {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.language-switcher select {
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  /* color: #4f46e5; */
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.language-switcher select:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+}
+
+.language-switcher select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
 }
 
 .auth-page {

@@ -36,14 +36,21 @@
     </div>
     <div class="message-input">
       <div class="input-options">
-        <label class="time-series-toggle">
+        <label class="response-style-toggle">
           <input type="checkbox" v-model="isTimeSeriesProxy" />
-          时序预测分析
+          <span class="toggle-container">时序分析</span>
         </label>
-        <label class="time-series-toggle">
+
+        <label class="response-style-toggle">
           <input type="checkbox" v-model="isAgentProxy" />
-          智能体团队
+          <span class="toggle-container">智能体团队</span>
         </label>
+
+        <label class="response-style-toggle">
+          <input type="checkbox" v-model="isThoughtProxy" />
+          <span class="toggle-container">深度思考</span>
+        </label>
+
         <label class="file-upload-button">
           <input type="file" @change="handleFileChange" accept=".csv, .txt" style="display: none;" ref="fileInput" />
           上传文件
@@ -90,21 +97,30 @@ export default defineComponent({
     isAgent: {
       type: Boolean,
       required: true
-    }
+    },
+    isThought: {
+      type: Boolean,
+      required: true
+    },
   },
-  emits: ['send-message', 'upload-file', 'update:isTimeSeries', 'update:isAgent'],
+  emits: ['send-message', 'upload-file', 'update:isTimeSeries', 'update:isAgent', 'update:isThought'],
   setup(props, { emit }) {
     const newMessage = ref('');
     const messagesContainer = ref<HTMLElement | null>(null);
     const uploadedFile = ref<File | null>(null);
     const isTimeSeries = ref(false);
     const isAgent = ref(false);
+    const isThought = ref(false);
     watch(() => props.isTimeSeries, (newVal) => {
       emit('update:isTimeSeries', newVal);
     });
 
     watch(() => props.isAgent, (newVal) => {
       emit('update:isAgent', newVal);
+    });
+
+    watch(() => props.isThought, (newVal) => {
+      emit('update:isThought', newVal);
     });
 
     const fileInput = ref<HTMLInputElement | null>(null);
@@ -117,6 +133,11 @@ export default defineComponent({
     const isAgentProxy = computed({
       get: () => props.isAgent,
       set: (val) => emit('update:isAgent', val)
+    });
+
+    const isThoughtProxy = computed({
+      get: () => props.isThought,
+      set: (val) => emit('update:isThought', val)
     });
 
     const renderMarkdown = (content: string) => {
@@ -178,12 +199,14 @@ export default defineComponent({
       uploadedFile,
       isTimeSeries,
       isAgent,
+      isThought,
       renderMarkdown,
       sendMessage,
       handleFileChange,
       formatTime,
       isTimeSeriesProxy,
       isAgentProxy,
+      isThoughtProxy,
       fileInput
     };
   }
@@ -301,13 +324,64 @@ export default defineComponent({
   align-items: center;
 }
 
-.time-series-toggle {
-  display: flex;
+/* 多选框样式 */
+.response-style-toggle {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #64748b;
   cursor: pointer;
+  margin-right: 0px;
+  user-select: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.response-style-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* 圆角矩形容器 */
+.response-style-toggle .toggle-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0px 2px;
+  min-width: 80px;
+  height: 36px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 32px;
+  color: #1a202c; /* 未选中字体黑色 */
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* 悬停效果 */
+.response-style-toggle:hover .toggle-container {
+  border-color: #cbd5e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 选中状态 - 浅蓝色背景，白色文字 */
+.response-style-toggle input:checked + .toggle-container {
+  background-color: #63b3ed; /* 浅蓝色 */
+  border-color: #63b3ed;
+  color: white;
+}
+
+/* 聚焦状态 */
+.response-style-toggle input:focus + .toggle-container {
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.3);
+}
+
+/* 激活状态 */
+.response-style-toggle.active .toggle-container {
+  transform: translateY(1px);
 }
 
 .file-upload-button {

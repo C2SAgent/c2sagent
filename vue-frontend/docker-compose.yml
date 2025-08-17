@@ -13,6 +13,19 @@ services:
     environment:
       - NODE_ENV=development
 
+  docs:
+    image: node:18
+    working_dir: /app_docs
+    volumes:
+      - .:/app_docs
+    ports:
+      - "5174:5174"
+    command: sh -c "npm install && npm run docs:dev -- --port 5174 --host 0.0.0.0"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - frontend
+
   # Nginx 反向代理
   nginx:
     image: nginx:alpine
@@ -24,3 +37,4 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - frontend
+      - docs

@@ -269,17 +269,22 @@ class ChatSession:
 
         llm_response = ""
         print("====================mcp流式响应=======================")
-        async for chunk in self.llm_client.get_stream_response(
+        async for chunk in self.llm_client.get_stream_response_reasion_and_content(
             messages, self.llm_client.llm_url, self.llm_client.api_key
         ):
-            print(chunk)
-            llm_response += chunk
+            if chunk["type"] == "text":
+                llm_response += chunk["content"]
             event = {
                 "is_task_complete": False,
                 "require_user_input": False,
-                "content": chunk,
+                "content": chunk["content"],
             }
             yield event
+        yield {
+            "is_task_complete": False,
+            "require_user_input": False,
+            "content": "\n",
+        }
         print("====================mcp流式响应结束=======================")
 
         logging.info(f"\nAssistant: {llm_response}")
@@ -290,18 +295,23 @@ class ChatSession:
             messages.append({"role": "user", "content": result})
             llm_response = ""
             print("====================mcp流式响应=======================")
-            async for chunk in self.llm_client.get_stream_response(
+            async for chunk in self.llm_client.get_stream_response_reasion_and_content(
                 messages, self.llm_client.llm_url, self.llm_client.api_key
             ):
-                llm_response += chunk
+                if chunk["type"] == "text":
+                    llm_response += chunk["content"]
                 event = {
                     "is_task_complete": False,
                     "require_user_input": False,
-                    "content": chunk,
+                    "content": chunk["content"],
                 }
                 yield event
+            yield {
+                "is_task_complete": False,
+                "require_user_input": False,
+                "content": "\n",
+            }
             print("====================mcp流式结束=======================")
-
             logging.info(f"\nAssistant: {llm_response}")
             result = await self.process_llm_response(llm_response, mcp_server_id)
 

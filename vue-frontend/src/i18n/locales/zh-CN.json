@@ -1,0 +1,27 @@
+{
+  "common": {
+    "login": "登录",
+    "loggingIn": "登录中..."
+  },
+  "login": {
+    "title": "用户登录",
+    "username": "用户名",
+    "password": "密码",
+    "demoAccount": "体验账号: agent 体验密码: agent",
+    "autoFill": "一键填入",
+    "noAccount": "没有账号？立即注册"
+  },
+  "home": {
+    "selectOrCreate": "请选择或创建一个新的任务"
+  },
+  "errors": {
+    "required": "请填写用户名和密码",
+    "loginFailed": "登录失败，请检查用户名和密码",
+    "loadFailed": "加载失败",
+    "parseFailed": "解析流数据失败",
+    "requestFailed": "请求失败，请重试",
+    "deleteSessionFailed": "删除会话失败",
+    "initFailed": "初始化失败",
+    "unknownNavTarget": "未知导航目标: {target}"
+}
+}

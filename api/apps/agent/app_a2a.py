@@ -130,6 +130,7 @@ async def stream_ask_a2a(
     session_id: str = Form(...),
     isTimeSeries: bool = Form(False),
     isAgent: bool = Form(False),
+    isThought: bool = Form(False),
     isDocAnalysis: bool = Form(False),
     files: UploadFile = File(None),
     current_user: models.UserConfig = Depends(auth.get_current_active_user),
@@ -367,16 +368,50 @@ async def stream_ask_a2a(
                     "timestamp": datetime.now().isoformat(),
                 }
                 await mongo.add_message(session_id, message_result)
+            elif isThought:
+                messages_find = await mongo.get_session_by_ids(
+                    str(current_user.id), session_id
+                )
+                question_message = messages_find["messages"]
+
+                message_thougth = ""
+                message_text = ""
+                async for result in llm_client.get_stream_response_reasion_and_content(
+                    question_message, llm_url=core_llm_url, api_key=core_llm_key
+                ):
+                    if result["type"] == "thought":
+                        message_thougth += result["content"]
+                    if result["type"] == "text":
+                        message_text += result["content"]
+                    yield json.dumps(
+                        {"event": result["type"], "data": result["content"]}
+                    ) + "\n\n"
+
+                message_result = {
+                    "role": "system",
+                    "content": message_thougth,
+                    "type": "thought",
+                    "timestamp": datetime.now().isoformat(),
+                }
+                await mongo.add_message(session_id, message_result)
+
+                message_result = {
+                    "role": "system",
+                    "content": message_text,
+                    "type": "text",
+                    "timestamp": datetime.now().isoformat(),
+                }
+                await mongo.add_message(session_id, message_result)
+
             else:
                 messages_find = await mongo.get_session_by_ids(
                     str(current_user.id), session_id
                 )
                 question_message = messages_find["messages"]
                 message_text = ""
-                async for result in llm_client.get_stream_response(
+                async for result in llm_client.get_stream_response_chat(
                     question_message, llm_url=core_llm_url, api_key=core_llm_key
                 ):
-                    # if result["type"] == "text":
                     message_text += result
                     yield json.dumps({"event": "text", "data": result}) + "\n\n"
 
