@@ -73,7 +73,12 @@ AI技术栈：A2A + MCP
   uv sync
   ./start_service.sh start
   ```
-
+  > 启动前端项目
+  ```bash
+  cd vue-frontend
+  npm install
+  npm run dev
+  ```
 
 ## 🏘️ 加入我们
 
