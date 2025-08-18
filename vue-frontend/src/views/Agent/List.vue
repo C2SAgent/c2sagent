@@ -1,23 +1,23 @@
 <template>
   <div class="agent-list-container">
     <div class="header-section">
-      <h2 class="page-title">智能体列表</h2>
+      <h2 class="page-title">{{ t('views.agent.list.title') }}</h2>
       <div class="action-buttons">
         <router-link to="/agent/create" class="primary-btn">
-          <span>+</span> 新建智能体
+          <span>+</span> {{ t('views.agent.list.newAgent') }}
         </router-link>
         <router-link to="/" class="secondary-btn">
-          与智能体团队对话
+          {{ t('views.agent.list.chatWithTeam') }}
         </router-link>
       </div>
     </div>
 
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <span>加载智能体数据中...</span>
+      <span>{{ t('views.agent.list.loadingAgents') }}</span>
       <span v-if="loadingProgress" class="progress-text">{{ loadingProgress }}</span>
     </div>
-    
+
     <div v-else-if="loadError" class="error-state">
       <div class="error-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -26,18 +26,18 @@
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
       </div>
-      <div class="error-message">加载失败: {{ loadError }}</div>
-      <button @click="retryLoading" class="retry-btn">重试</button>
+      <div class="error-message">{{ t('views.agent.list.loadFailed') }}: {{ loadError }}</div>
+      <button @click="retryLoading" class="retry-btn">{{ t('common.retry') }}</button>
     </div>
-    
+
     <div v-else class="agent-grid">
       <div v-for="agent in agents" :key="agent.id" class="agent-card">
         <div class="card-header">
           <h3 class="agent-name">{{ agent.name }}</h3>
           <div class="agent-version">v{{ agent.version || '1.0' }}</div>
         </div>
-        <p class="agent-description">{{ agent.description || '暂无描述' }}</p>
-        
+        <p class="agent-description">{{ agent.description || t('views.agent.list.noDescription') }}</p>
+
         <div class="mcp-info" :class="{ 'unbound': !agent.mcp }">
           <template v-if="agent.mcp">
             <div class="mcp-name">
@@ -48,13 +48,13 @@
               </svg>
               <span>{{ agent.mcp.name }}</span>
             </div>
-            <div class="mcp-id">ID: {{ agent.mcp.id }}</div>
+            <div class="mcp-id">{{ t('views.agent.list.mcpId') }}: {{ agent.mcp.id }}</div>
             <button @click="unbindMcp(agent.id, agent.mcp.id)" class="unbind-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-              解绑mcp
+              {{ t('views.agent.list.unbindMcp') }}
             </button>
           </template>
           <template v-else>
@@ -63,11 +63,11 @@
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-              <span>未绑定MCP</span>
+              <span>{{ t('views.agent.list.unboundMcp') }}</span>
             </div>
           </template>
         </div>
-        
+
         <div class="card-actions">
           <button @click="deleteAgent(agent.id)" class="delete-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -76,7 +76,7 @@
               <line x1="10" y1="11" x2="10" y2="17"></line>
               <line x1="14" y1="11" x2="14" y2="17"></line>
             </svg>
-            删除
+            {{ t('common.delete') }}
           </button>
           <button @click="showMcpSelection(agent)" class="bind-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +84,7 @@
               <path d="M12 8h1a4 4 0 0 1 0 8h-1"></path>
               <path d="M6 8H7a4 4 0 0 1 0 8H6"></path>
             </svg>
-            绑定MCP
+            {{ t('views.agent.list.bindMcp') }}
           </button>
         </div>
       </div>
@@ -94,7 +94,7 @@
     <div v-if="showMcpSelect" class="modal-overlay">
       <div class="modal-container">
         <div class="modal-header">
-          <h3>为 {{ selectedAgent?.name }} 选择MCP</h3>
+          <h3>{{ t('views.agent.list.selectMcpFor') }} {{ selectedAgent?.name }}</h3>
           <button @click="cancelBind" class="modal-close-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -104,19 +104,19 @@
         </div>
         <div class="modal-body">
           <select v-model="selectedMcpId" class="modal-select">
-            <option value="">请选择MCP</option>
-            <option 
-              v-for="mcp in mcpList" 
-              :key="mcp.id" 
+            <option value="">{{ t('views.agent.list.selectMcp') }}</option>
+            <option
+              v-for="mcp in mcpList"
+              :key="mcp.id"
               :value="mcp.id"
               :disabled="selectedAgent?.mcp?.id === mcp.id">
-              {{ mcp.name }} (MCP ID: {{ mcp.id }})
+              {{ mcp.name }} ({{ t('views.agent.list.mcpId') }}: {{ mcp.id }})
             </option>
           </select>
         </div>
         <div class="modal-footer">
-          <button @click="cancelBind" class="modal-cancel-btn">取消</button>
-          <button @click="confirmBind" :disabled="!selectedMcpId" class="modal-confirm-btn">确认绑定</button>
+          <button @click="cancelBind" class="modal-cancel-btn">{{ t('common.cancel') }}</button>
+          <button @click="confirmBind" :disabled="!selectedMcpId" class="modal-confirm-btn">{{ t('agent.list.confirmBind') }}</button>
         </div>
       </div>
     </div>
@@ -127,6 +127,9 @@
 import { ref, onMounted } from 'vue'
 import { AgentApi } from '@/api/agent'
 import { McpApi } from '@/api/mcp'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 // 状态管理
 const loading = ref(true)
@@ -143,37 +146,34 @@ const loadData = async () => {
   try {
     loading.value = true
     loadError.value = ''
-    loadingProgress.value = '加载智能体列表...'
-    
-    // 加载基础数据
+    loadingProgress.value = t('views.agent.list.loadingAgentList')
+
     const [agentsRes, mcpsRes] = await Promise.all([
       AgentApi.list(),
       McpApi.list()
     ])
-    
-    // 验证数据格式
+
     if (!agentsRes.data?.data || !mcpsRes.data?.data) {
-      throw new Error('API返回数据格式不正确')
+      throw new Error(t('errors.invalidApiResponse'))
     }
-    
+
     agents.value = agentsRes.data.data
     mcpList.value = mcpsRes.data.data
-    
-    // 加载每个Agent的MCP信息
-    loadingProgress.value = '加载MCP绑定信息...'
+
+    loadingProgress.value = t('views.agent.list.loadingMcpInfo')
     for (const agent of agents.value) {
       try {
         const mcpRes = await AgentApi.findMcpByAgent(agent.id)
         agent.mcp = mcpRes.data.data || null
       } catch (error) {
-        console.error(`获取Agent ${agent.id}的MCP失败:`, error)
+        console.error(t('errors.getAgentMcpFailed', { id: agent.id }), error)
         agent.mcp = null
       }
     }
-    
+
   } catch (error) {
-    console.error('加载数据失败:', error)
-    loadError.value = error instanceof Error ? error.message : '未知错误'
+    console.error(t('errors.loadDataFailed'), error)
+    loadError.value = error instanceof Error ? error.message : t('errors.unknownError')
   } finally {
     loading.value = false
     loadingProgress.value = ''
@@ -190,13 +190,13 @@ const retryLoading = () => {
 
 // 删除智能体
 const deleteAgent = async (id: number) => {
-  if (!confirm('确定删除此智能体吗？')) return
-  
+  if (!confirm(t('views.agent.list.confirmDelete'))) return
+
   try {
     await AgentApi.delete(id)
     agents.value = agents.value.filter(a => a.id !== id)
   } catch (error) {
-    alert('删除失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    alert(t('errors.deleteFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 
@@ -215,35 +215,33 @@ const cancelBind = () => {
 
 const confirmBind = async () => {
   if (!selectedAgent.value || !selectedMcpId.value) return
-  
+
   try {
     await AgentApi.correlateMcp(selectedAgent.value.id, selectedMcpId.value)
-    
-    // 更新本地数据
+
     const mcp = mcpList.value.find(m => m.id === selectedMcpId.value)
     if (mcp) {
       selectedAgent.value.mcp = mcp
     }
-    
+
     cancelBind()
   } catch (error) {
-    alert('绑定失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    alert(t('errors.bindFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 
 const unbindMcp = async (agentId: number, mcpId: number) => {
-  if (!confirm('确定要解绑此MCP吗？')) return
-  
+  if (!confirm(t('views.agent.list.confirmUnbind'))) return
+
   try {
-    await AgentApi.discorrelateMcp(agentId, mcpId) // 假设0表示解绑
-    
-    // 更新本地数据
+    await AgentApi.discorrelateMcp(agentId, mcpId)
+
     const agent = agents.value.find(a => a.id === agentId)
     if (agent) {
       agent.mcp = null
     }
   } catch (error) {
-    alert('解绑失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    alert(t('errors.unbindFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 </script>

@@ -1,7 +1,11 @@
 {
   "common": {
     "login": "登录",
-    "loggingIn": "登录中..."
+    "loggingIn": "登录中...",
+    "retry": "重试",
+    "cancel": "取消",
+    "delete": "删除",
+    "send": "发送"
   },
   "login": {
     "title": "用户登录",
@@ -11,8 +15,89 @@
     "autoFill": "一键填入",
     "noAccount": "没有账号？立即注册"
   },
-  "home": {
-    "selectOrCreate": "请选择或创建一个新的任务"
+  "components": {
+    "sidebar": {
+      "title": "C2S Agent",
+      "newTask": "新任务",
+      "manageAgent": "管理我的Agent",
+      "manageMcp": "管理我的Mcp",
+      "logout": "退出登录"
+    },
+    "chatArea": {
+      "viewDocument": "查看文档",
+      "resultImage": "分析结果图片",
+      "thought": "思考",
+      "timeSeries": "时序分析",
+      "agentTeam": "智能体团队",
+      "deepThought": "深度思考",
+      "uploadFile": "上传文件",
+      "inputPlaceholder": "输入消息..."
+    }
+  },
+  "views": {
+    "home": {
+      "selectOrCreate": "请选择或创建一个新的任务"
+    },
+    "agent": {
+      "create": {
+        "title": "创建智能体",
+        "name": "名称",
+        "description": "描述",
+        "llmName": "LLM名称",
+        "llmUrl": "LLM URL",
+        "llmKey": "LLM Key",
+        "version": "版本",
+        "enableStreaming": "启用流式响应",
+        "examples": "示例",
+        "examplesPlaceholder": "['示例1', '示例2']",
+        "creating": "创建中...",
+        "submit": "创建智能体"
+      },
+      "list": {
+        "title": "智能体列表",
+        "newAgent": "新建智能体",
+        "chatWithTeam": "与智能体团队对话",
+        "loadingAgents": "加载智能体数据中...",
+        "loadFailed": "加载失败",
+        "noDescription": "暂无描述",
+        "mcpId": "MCP ID",
+        "unbindMcp": "解绑MCP",
+        "unboundMcp": "未绑定MCP",
+        "bindMcp": "绑定MCP",
+        "selectMcpFor": "为",
+        "selectMcp": "请选择MCP",
+        "confirmBind": "确认绑定",
+        "confirmDelete": "确定删除此智能体吗？",
+        "confirmUnbind": "确定要解绑此MCP吗？",
+        "loadingAgentList": "加载智能体列表...",
+        "loadingMcpInfo": "加载MCP绑定信息..."
+      }
+    }
+  },
+  "mcp": {
+    "create": {
+      "title": "创建MCP服务",
+      "nameLabel": "名称",
+      "namePlaceholder": "输入MCP服务名称",
+      "creating": "创建中...",
+      "submit": "创建MCP服务"
+    },
+    "list": {
+      "title": "MCP服务管理",
+      "newMcp": "新建MCP服务",
+      "loading": "加载MCP服务中...",
+      "name": "名称",
+      "actions": "操作",
+      "manageTools": "管理工具"
+    },
+    "tool": {
+      "title": "工具管理 - MCP {id}",
+      "addNewTool": "添加新工具",
+      "jsonPlaceholder": "输入工具JSON格式",
+      "addTool": "添加工具",
+      "existingTools": "现有工具",
+      "noTools": "暂无工具，请添加"
+    }
   },
   "errors": {
     "required": "请填写用户名和密码",
@@ -22,6 +107,15 @@
     "requestFailed": "请求失败，请重试",
     "deleteSessionFailed": "删除会话失败",
     "initFailed": "初始化失败",
-    "unknownNavTarget": "未知导航目标: {target}"
+    "unknownNavTarget": "未知导航目标: {target}",
+    "invalidApiResponse": "API返回数据格式不正确",
+    "getAgentMcpFailed": "获取Agent {id}的MCP失败",
+    "loadDataFailed": "加载数据失败",
+    "unknownError": "未知错误",
+    "deleteFailed": "删除失败",
+    "bindFailed": "绑定失败",
+    "unbindFailed": "解绑失败",
+    "invalidJson": "无效的JSON格式",
+    "addFailed": "添加失败"
 }
 }

@@ -2,11 +2,11 @@
   <div class="sidebar">
     <div class="sidebar-top">
       <h2 style="display: flex; align-items: center; gap: 8px">
-        <span>C2S Agent</span>
+        <span>{{ t('components.sidebar.title') }}</span>
         <img src="../assets/logo.png" alt="logo" class="logo" />
       </h2>
       <button class="new-chat-btn" @click="emitNewChat">
-        <span>+</span> 新任务
+        <span>+</span> {{ t('components.sidebar.newTask') }}
       </button>
       <div class="chat-list">
         <ChatItem
@@ -21,16 +21,13 @@
     </div>
     <div class="sidebar-bottom">
       <button @click="emitNavigation('agent')">
-        <span>👤</span> 管理我的Agent
+        <span>👤</span> {{ t('components.sidebar.manageAgent') }}
       </button>
       <button @click="emitNavigation('mcp')">
-        <span>⚙️</span> 管理我的Mcp
-      </button>
-      <button @click="emitNavigation('media')">
-        <span>⚙️</span> 管理我的Meida
+        <span>⚙️</span> {{ t('components.sidebar.manageMcp') }}
       </button>
       <button @click="emitNavigation('logout')">
-        <span>🚪</span> 退出登录
+        <span>🚪</span> {{ t('components.sidebar.logout') }}
       </button>
     </div>
   </div>
@@ -38,6 +35,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ChatItem from './ChatItem.vue';
 import type { ChatSession } from '@/types/chat';
 
@@ -58,6 +56,8 @@ export default defineComponent({
   },
   emits: ['select-session', 'new-chat', 'navigate', 'delete-session'],
   setup(props, { emit }) {
+    const { t } = useI18n();
+
     const emitSelectSession = (sessionId: string) => {
       emit('select-session', sessionId);
     };
@@ -75,6 +75,7 @@ export default defineComponent({
     }
 
     return {
+      t,
       emitSelectSession,
       emitNewChat,
       emitNavigation,
@@ -83,7 +84,6 @@ export default defineComponent({
   }
 });
 </script>
-
 
 <style scoped>
 .sidebar {

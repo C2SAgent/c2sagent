@@ -1,47 +1,47 @@
 <template>
   <div class="tool-management-container">
     <div class="header-section">
-      <h2 class="page-title">工具管理 - MCP {{ mcpId }}</h2>
+      <h2 class="page-title">{{ t('views.mcp.tool.title', { id: mcpId }) }}</h2>
     </div>
 
     <div class="tool-management-content">
       <div class="tool-editor-section">
-        <h3 class="section-title">添加新工具</h3>
-        <textarea 
-          v-model="newToolJson" 
-          placeholder="输入工具JSON格式"
+        <h3 class="section-title">{{ t('views.mcp.tool.addNewTool') }}</h3>
+        <textarea
+          v-model="newToolJson"
+          :placeholder="t('views.mcp.tool.jsonPlaceholder')"
           class="json-textarea"
         ></textarea>
         <div class="editor-actions">
-          <button 
-            @click="addTool" 
+          <button
+            @click="addTool"
             :disabled="!isValidJson"
             class="primary-btn"
           >
-            添加工具
+            {{ t('views.mcp.tool.addTool') }}
           </button>
           <p v-if="jsonError" class="error-message">{{ jsonError }}</p>
         </div>
       </div>
-      
+
       <div class="tool-list-section">
-        <h3 class="section-title">现有工具</h3>
+        <h3 class="section-title">{{ t('views.mcp.tool.existingTools') }}</h3>
         <div v-if="tools.length === 0" class="empty-state">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
-          <span>暂无工具，请添加</span>
+          <span>{{ t('views.mcp.tool.noTools') }}</span>
         </div>
         <div v-else>
-          <div 
-            v-for="(tool, index) in tools" 
-            :key="index" 
+          <div
+            v-for="(tool, index) in tools"
+            :key="index"
             class="tool-item"
           >
             <pre class="tool-json">{{ JSON.stringify(tool, null, 2) }}</pre>
-            <button 
+            <button
               @click="removeTool(Number(mcpId), tool.name)"
               class="delete-btn"
             >
@@ -51,7 +51,7 @@
                 <line x1="10" y1="11" x2="10" y2="17"></line>
                 <line x1="14" y1="11" x2="14" y2="17"></line>
               </svg>
-              删除
+              {{ t('common.delete') }}
             </button>
           </div>
         </div>
@@ -64,7 +64,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { McpApi } from '@/api/mcp'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const mcpId = route.params.id
 
@@ -78,7 +80,7 @@ const isValidJson = computed(() => {
     jsonError.value = ''
     return true
   } catch (e) {
-    jsonError.value = '无效的JSON格式'
+    jsonError.value = t('errors.invalidJson')
     return false
   }
 })
@@ -94,7 +96,7 @@ const addTool = async () => {
     newToolJson.value = ''
     await loadTools()
   } catch (error) {
-    alert('添加失败: ' + error)
+    alert(t('errors.addFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 
@@ -104,7 +106,7 @@ const removeTool = async (mcpId: number, tool_name: string) => {
     newToolJson.value = ''
     await loadTools()
   } catch (error) {
-    alert('添加失败: ' + error)
+    alert(t('errors.deleteFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 

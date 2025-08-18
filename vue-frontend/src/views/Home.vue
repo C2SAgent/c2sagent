@@ -23,7 +23,7 @@
       @update:isThought="val => isThought = val"
     />
     <div v-else class="empty-chat-area">
-      <p>{{ t('home.selectOrCreate') }}</p>
+      <p>{{ t('views.home.selectOrCreate') }}</p>
     </div>
   </div>
 </template>
@@ -216,9 +216,6 @@ export default defineComponent({
           break
         case 'mcp':
           router.push('/mcp/list')
-          break
-        case 'media':
-          router.push('/media/list')
           break
         case 'logout':
           router.push('/logout')

@@ -1,7 +1,11 @@
 {
   "common": {
     "login": "Login",
-    "loggingIn": "Logging in..."
+    "loggingIn": "Logging in...",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "send": "Send"
   },
   "login": {
     "title": "User Login",
@@ -11,8 +15,89 @@
     "autoFill": "Auto fill",
     "noAccount": "No account? Register now"
   },
-  "home": {
-    "selectOrCreate": "Please select or create a new task"
+  "components": {
+    "sidebar": {
+      "title": "C2S Agent",
+      "newTask": "New Task",
+      "manageAgent": "Manage My Agent",
+      "manageMcp": "Manage My Mcp",
+      "logout": "Logout"
+    },
+    "chatArea": {
+      "viewDocument": "View Document",
+      "resultImage": "Result Image",
+      "thought": "Thought",
+      "timeSeries": "Time Series",
+      "agentTeam": "Agent Team",
+      "deepThought": "Deep Thought",
+      "uploadFile": "Upload File",
+      "inputPlaceholder": "Type a message..."
+    }
+  },
+  "views":{
+    "home": {
+      "selectOrCreate": "Please select or create a new task"
+    },
+    "agent": {
+      "create": {
+        "title": "Create Agent",
+        "name": "Name",
+        "description": "Description",
+        "llmName": "LLM Name",
+        "llmUrl": "LLM URL",
+        "llmKey": "LLM Key",
+        "version": "Version",
+        "enableStreaming": "Enable Streaming",
+        "examples": "Examples",
+        "examplesPlaceholder": "['Example1', 'Example2']",
+        "creating": "Creating...",
+        "submit": "Create Agent"
+      },
+      "list": {
+        "title": "Agent List",
+        "newAgent": "New Agent",
+        "chatWithTeam": "Chat with Agent Team",
+        "loadingAgents": "Loading agent data...",
+        "loadFailed": "Load failed",
+        "noDescription": "No description",
+        "mcpId": "MCP ID",
+        "unbindMcp": "Unbind MCP",
+        "unboundMcp": "Unbound MCP",
+        "bindMcp": "Bind MCP",
+        "selectMcpFor": "Select MCP for",
+        "selectMcp": "Please select MCP",
+        "confirmBind": "Confirm Binding",
+        "confirmDelete": "Are you sure to delete this agent?",
+        "confirmUnbind": "Are you sure to unbind this MCP?",
+        "loadingAgentList": "Loading agent list...",
+        "loadingMcpInfo": "Loading MCP binding info..."
+      }
+    },
+    "mcp": {
+      "create": {
+        "title": "Create MCP Service",
+        "nameLabel": "Name",
+        "namePlaceholder": "Enter MCP service name",
+        "creating": "Creating...",
+        "submit": "Create MCP Service"
+      },
+      "list": {
+        "title": "MCP Service Management",
+        "newMcp": "New MCP Service",
+        "loading": "Loading MCP services...",
+        "name": "Name",
+        "actions": "Actions",
+        "manageTools": "Manage Tools"
+      },
+      "tool": {
+        "title": "Tool Management - MCP {id}",
+        "addNewTool": "Add New Tool",
+        "jsonPlaceholder": "Enter tool JSON format",
+        "addTool": "Add Tool",
+        "existingTools": "Existing Tools",
+        "noTools": "No tools, please add"
+      }
+    }
   },
   "errors": {
     "required": "Please enter username and password",
@@ -22,6 +107,15 @@
     "requestFailed": "Request failed, please try again",
     "deleteSessionFailed": "Failed to delete session",
     "initFailed": "Initialization failed",
-    "unknownNavTarget": "Unknown navigation target: {target}"
+    "unknownNavTarget": "Unknown navigation target: {target}",
+    "invalidApiResponse": "Invalid API response format",
+    "getAgentMcpFailed": "Failed to get MCP for Agent {id}",
+    "loadDataFailed": "Failed to load data",
+    "unknownError": "Unknown error",
+    "deleteFailed": "Delete failed",
+    "bindFailed": "Binding failed",
+    "unbindFailed": "Unbinding failed",
+    "invalidJson": "Invalid JSON format",
+    "addFailed": "Add failed"
 }
 }

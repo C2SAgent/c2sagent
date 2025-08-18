@@ -11,13 +11,13 @@
       >
         <div v-if="message.type === 'text'" class="message-content" v-html="renderMarkdown(message.content)"></div>
         <div v-else-if="message.type === 'doc'" class="message-content">
-          <a :href="message.content" target="_blank">查看文档</a>
+          <a :href="message.content" target="_blank">{{ t('components.chatArea.viewDocument') }}</a>
         </div>
         <div v-else-if="message.type === 'img'" class="message-content">
-          <img :src="message.content" alt="分析结果图片" style="max-width: 100%; max-height: 300px;">
+          <img :src="message.content" :alt="t('components.chatArea.resultImage')" style="max-width: 100%; max-height: 300px;">
         </div>
         <div v-else-if="message.type === 'thought'" class="message-content">
-          <div class="thought-title">思考</div>
+          <div class="thought-title">{{ t('components.chatArea.thought') }}</div>
           <div class="thought-content" v-html="renderMarkdown(message.content)"></div>
         </div>
         <div class="message-time">
@@ -38,22 +38,22 @@
       <div class="input-options">
         <label class="response-style-toggle">
           <input type="checkbox" v-model="isTimeSeriesProxy" />
-          <span class="toggle-container">时序分析</span>
+          <span class="toggle-container">{{ t('components.chatArea.timeSeries') }}</span>
         </label>
 
         <label class="response-style-toggle">
           <input type="checkbox" v-model="isAgentProxy" />
-          <span class="toggle-container">智能体团队</span>
+          <span class="toggle-container">{{ t('components.chatArea.agentTeam') }}</span>
         </label>
 
         <label class="response-style-toggle">
           <input type="checkbox" v-model="isThoughtProxy" />
-          <span class="toggle-container">深度思考</span>
+          <span class="toggle-container">{{ t('components.chatArea.deepThought') }}</span>
         </label>
 
         <label class="file-upload-button">
           <input type="file" @change="handleFileChange" accept=".csv, .txt" style="display: none;" ref="fileInput" />
-          上传文件
+          {{ t('components.chatArea.uploadFile') }}
           <span v-if="uploadedFile" class="file-name">{{ uploadedFile.name }}</span>
         </label>
       </div>
@@ -61,9 +61,9 @@
         <input
           v-model="newMessage"
           @keyup.enter="sendMessage"
-          placeholder="输入消息..."
+          :placeholder="t('components.chatArea.inputPlaceholder')"
         />
-        <button @click="sendMessage">发送</button>
+        <button @click="sendMessage">{{ t('common.send') }}</button>
       </div>
     </div>
   </div>
@@ -74,6 +74,7 @@ import { defineComponent, type PropType, ref, watch, nextTick, onMounted, comput
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { ChatMessage } from '@/types/chat';
+import { useI18n } from 'vue-i18n';
 
 export default defineComponent({
   name: 'ChatArea',
@@ -105,12 +106,15 @@ export default defineComponent({
   },
   emits: ['send-message', 'upload-file', 'update:isTimeSeries', 'update:isAgent', 'update:isThought'],
   setup(props, { emit }) {
+    const { t } = useI18n();
     const newMessage = ref('');
     const messagesContainer = ref<HTMLElement | null>(null);
     const uploadedFile = ref<File | null>(null);
     const isTimeSeries = ref(false);
     const isAgent = ref(false);
     const isThought = ref(false);
+    const fileInput = ref<HTMLInputElement | null>(null);
+
     watch(() => props.isTimeSeries, (newVal) => {
       emit('update:isTimeSeries', newVal);
     });
@@ -122,8 +126,6 @@ export default defineComponent({
     watch(() => props.isThought, (newVal) => {
       emit('update:isThought', newVal);
     });
-
-    const fileInput = ref<HTMLInputElement | null>(null);
 
     const isTimeSeriesProxy = computed({
       get: () => props.isTimeSeries,
@@ -143,12 +145,13 @@ export default defineComponent({
     const renderMarkdown = (content: string) => {
       return DOMPurify.sanitize(marked(content));
     };
+
     const sendMessage = () => {
       if (newMessage.value.trim() || uploadedFile.value) {
         emit('send-message', newMessage.value.trim());
         newMessage.value = '';
         if (fileInput.value) {
-          fileInput.value.value = ''; // 重置文件输入
+          fileInput.value.value = '';
         }
         uploadedFile.value = null;
       }
@@ -194,6 +197,7 @@ export default defineComponent({
     })
 
     return {
+      t,
       newMessage,
       messagesContainer,
       uploadedFile,

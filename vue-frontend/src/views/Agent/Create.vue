@@ -1,52 +1,52 @@
 <template>
   <div class="agent-create">
-    <h2 class="page-title">创建智能体</h2>
+    <h2 class="page-title">{{ t('views.agent.create.title') }}</h2>
     <form @submit.prevent="handleSubmit" class="modern-form">
       <div class="form-group">
-        <label class="form-label">名称</label>
+        <label class="form-label">{{ t('views.agent.create.name') }}</label>
         <input v-model="form.name" required class="form-input">
       </div>
-      
+
       <div class="form-group">
-        <label class="form-label">描述</label>
+        <label class="form-label">{{ t('views.agent.create.description') }}</label>
         <textarea v-model="form.description" class="form-textarea"></textarea>
       </div>
-      
+
       <div class="form-group">
-        <label class="form-label">LLM名称</label>
+        <label class="form-label">{{ t('views.agent.create.llmName') }}</label>
         <input v-model="form.llm_name" required class="form-input">
       </div>
-      
+
       <div class="form-group">
-        <label class="form-label">LLM URL</label>
+        <label class="form-label">{{ t('views.agent.create.llmUrl') }}</label>
         <input v-model="form.llm_url" class="form-input">
       </div>
-      
+
       <div class="form-group">
-        <label class="form-label">LLM Key</label>
+        <label class="form-label">{{ t('views.agent.create.llmKey') }}</label>
         <input v-model="form.llm_key" type="password" class="form-input">
       </div>
-      
+
       <div class="form-group">
-        <label class="form-label">版本</label>
+        <label class="form-label">{{ t('views.agent.create.version') }}</label>
         <input v-model="form.version" class="form-input">
       </div>
-      
+
       <div class="form-group checkbox-group">
         <label class="checkbox-label">
           <input type="checkbox" v-model="form.streaming" class="checkbox-input">
           <span class="checkbox-custom"></span>
-          启用流式响应
+          {{ t('views.agent.create.enableStreaming') }}
         </label>
       </div>
-      
+
       <div class="form-group">
-        <label class="form-label">示例</label>
-        <textarea v-model="form.examples" placeholder="['示例1', '示例2']" class="form-textarea"></textarea>
+        <label class="form-label">{{ t('views.agent.create.examples') }}</label>
+        <textarea v-model="form.examples" :placeholder="t('views.agent.create.examplesPlaceholder')" class="form-textarea"></textarea>
       </div>
-      
+
       <button type="submit" :disabled="loading" class="submit-btn">
-        {{ loading ? '创建中...' : '创建智能体' }}
+        {{ loading ? t('views.agent.create.creating') : t('views.agent.create.submit') }}
       </button>
     </form>
   </div>
@@ -56,7 +56,9 @@
 import { ref, watch } from 'vue'
 import { AgentApi } from '@/api/agent'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const loading = ref(false)
 
@@ -71,10 +73,8 @@ const form = ref({
   examples: ['']
 })
 
-// 监听examples的变化，将文本转换为数组
 watch(() => form.value.examples, (newVal: string | string[]) => {
   if (typeof newVal === 'string') {
-    // 确保赋值的类型匹配
     form.value.examples = newVal.split('\n').filter(line => line.trim())
   }
 }, { deep: true })

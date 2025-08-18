@@ -1,40 +1,40 @@
 <template>
   <div class="mcp-list-container">
     <div class="header-section">
-      <h2 class="page-title">MCP服务管理</h2>
+      <h2 class="page-title">{{ t('views.mcp.list.title') }}</h2>
       <div class="action-buttons">
         <router-link to="/mcp/create" class="primary-btn">
-          <span>+</span> 新建MCP服务
+          <span>+</span> {{ t('views.mcp.list.newMcp') }}
         </router-link>
       </div>
     </div>
 
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <span>加载MCP服务中...</span>
+      <span>{{ t('views.mcp.list.loading') }}</span>
     </div>
-    
+
     <div v-else class="mcp-table">
       <table>
         <thead>
           <tr>
-            <th class="name-column">名称</th>
-            <th class="actions-column">操作</th>
+            <th class="name-column">{{ t('views.mcp.list.name') }}</th>
+            <th class="actions-column">{{ t('views.mcp.list.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="mcp in mcps" :key="mcp.id">
             <td>{{ mcp.name }}</td>
             <td>
-              <router-link 
-                :to="`/mcp/${mcp.id}/tools`" 
+              <router-link
+                :to="`/mcp/${mcp.id}/tools`"
                 class="manage-link"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path>
                   <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon>
                 </svg>
-                管理工具
+                {{ t('views.mcp.list.manageTools') }}
               </router-link>
             </td>
           </tr>
@@ -47,7 +47,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { McpApi } from '@/api/mcp'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const loading = ref(true)
 const mcps = ref<any[]>([])
 

@@ -1,19 +1,19 @@
 <template>
   <div class="mcp-create-container">
-    <h2 class="page-title">创建MCP服务</h2>
+    <h2 class="page-title">{{ t('views.mcp.create.title') }}</h2>
     <form @submit.prevent="handleSubmit" class="modern-form">
       <div class="form-group">
-        <label class="form-label">名称</label>
-        <input 
-          v-model="form.name" 
+        <label class="form-label">{{ t('views.mcp.create.nameLabel') }}</label>
+        <input
+          v-model="form.name"
           required
           class="form-input"
-          placeholder="输入MCP服务名称"
+          :placeholder="t('views.mcp.create.namePlaceholder')"
         >
       </div>
-      
+
       <button type="submit" :disabled="loading" class="submit-btn">
-        {{ loading ? '创建中...' : '创建MCP服务' }}
+        {{ loading ? t('views.mcp.create.creating') : t('views.mcp.create.submit') }}
       </button>
     </form>
   </div>
@@ -23,7 +23,9 @@
 import { ref } from 'vue'
 import { McpApi } from '@/api/mcp'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const loading = ref(false)
 
