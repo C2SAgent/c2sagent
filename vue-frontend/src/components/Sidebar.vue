@@ -99,13 +99,13 @@ export default defineComponent({
 }
 
 .sidebar-top {
-  flex: 7;
+  flex: 8;
   overflow-y: auto;
   padding: 0 0.75rem;
 }
 
 .sidebar-bottom {
-  flex: 3;
+  flex: 2;
   display: flex;
   flex-direction: column;
   padding: 1rem;

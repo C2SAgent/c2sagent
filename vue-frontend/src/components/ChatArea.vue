@@ -36,18 +36,18 @@
     </div>
     <div class="message-input">
       <div class="input-options">
-        <label class="response-style-toggle">
-          <input type="checkbox" v-model="isTimeSeriesProxy" />
+        <label class="response-style-toggle" @click.prevent="toggleProxy('timeSeries')">
+          <input type="checkbox" :checked="selectedProxy === 'timeSeries'" style="display: none;" />
           <span class="toggle-container">{{ t('components.chatArea.timeSeries') }}</span>
         </label>
 
-        <label class="response-style-toggle">
-          <input type="checkbox" v-model="isAgentProxy" />
+        <label class="response-style-toggle" @click.prevent="toggleProxy('agent')">
+          <input type="checkbox" :checked="selectedProxy === 'agent'" style="display: none;" />
           <span class="toggle-container">{{ t('components.chatArea.agentTeam') }}</span>
         </label>
 
-        <label class="response-style-toggle">
-          <input type="checkbox" v-model="isThoughtProxy" />
+        <label class="response-style-toggle" @click.prevent="toggleProxy('thought')">
+          <input type="checkbox" :checked="selectedProxy === 'thought'" style="display: none;" />
           <span class="toggle-container">{{ t('components.chatArea.deepThought') }}</span>
         </label>
 
@@ -60,10 +60,12 @@
       <div class="input-container">
         <input
           v-model="newMessage"
-          @keyup.enter="sendMessage"
+          @keyup.enter="isSending ? stopMessage() : sendMessage()"
           :placeholder="t('components.chatArea.inputPlaceholder')"
         />
-        <button @click="sendMessage">{{ t('common.send') }}</button>
+        <button @click="isSending ? stopMessage() : sendMessage()">
+          {{ isSending ? t('common.stop') : t('common.send') }}
+        </button>
       </div>
     </div>
   </div>
@@ -104,7 +106,7 @@ export default defineComponent({
       required: true
     },
   },
-  emits: ['send-message', 'upload-file', 'update:isTimeSeries', 'update:isAgent', 'update:isThought'],
+  emits: ['send-message', 'upload-file', 'update:isTimeSeries', 'update:isAgent', 'update:isThought', 'stop-message'],
   setup(props, { emit }) {
     const { t } = useI18n();
     const newMessage = ref('');
@@ -114,6 +116,22 @@ export default defineComponent({
     const isAgent = ref(false);
     const isThought = ref(false);
     const fileInput = ref<HTMLInputElement | null>(null);
+    const selectedProxy = ref<string | null>(null);
+    const isSending = ref(false);
+
+    const toggleProxy = (proxyType: string) => {
+      if (selectedProxy.value === proxyType) {
+        selectedProxy.value = null;
+      } else {
+        selectedProxy.value = proxyType;
+      }
+    };
+
+    watch(selectedProxy, (newVal) => {
+      emit('update:isTimeSeries', newVal === 'timeSeries');
+      emit('update:isAgent', newVal === 'agent');
+      emit('update:isThought', newVal === 'thought');
+    });
 
     watch(() => props.isTimeSeries, (newVal) => {
       emit('update:isTimeSeries', newVal);
@@ -148,6 +166,7 @@ export default defineComponent({
 
     const sendMessage = () => {
       if (newMessage.value.trim() || uploadedFile.value) {
+        isSending.value = true;
         emit('send-message', newMessage.value.trim());
         newMessage.value = '';
         if (fileInput.value) {
@@ -155,6 +174,11 @@ export default defineComponent({
         }
         uploadedFile.value = null;
       }
+    };
+
+    const stopMessage = () => {
+      isSending.value = false;
+      emit('stop-message');
     };
 
     const handleFileChange = (event: Event) => {
@@ -206,18 +230,23 @@ export default defineComponent({
       isThought,
       renderMarkdown,
       sendMessage,
+      stopMessage,
       handleFileChange,
       formatTime,
       isTimeSeriesProxy,
       isAgentProxy,
       isThoughtProxy,
-      fileInput
+      fileInput,
+      selectedProxy,
+      toggleProxy,
+      isSending
     };
   }
 });
 </script>
 
 <style scoped>
+/* 原有样式保持不变 */
 .chat-area {
   flex: 1;
   display: flex;
@@ -328,7 +357,6 @@ export default defineComponent({
   align-items: center;
 }
 
-/* 多选框样式 */
 .response-style-toggle {
   position: relative;
   display: inline-flex;
@@ -346,7 +374,6 @@ export default defineComponent({
   height: 0;
 }
 
-/* 圆角矩形容器 */
 .response-style-toggle .toggle-container {
   position: relative;
   display: inline-flex;
@@ -358,32 +385,28 @@ export default defineComponent({
   background-color: white;
   border: 1px solid #e2e8f0;
   border-radius: 32px;
-  color: #1a202c; /* 未选中字体黑色 */
+  color: #1a202c;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* 悬停效果 */
 .response-style-toggle:hover .toggle-container {
   border-color: #cbd5e0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* 选中状态 - 浅蓝色背景，白色文字 */
 .response-style-toggle input:checked + .toggle-container {
-  background-color: #63b3ed; /* 浅蓝色 */
+  background-color: #63b3ed;
   border-color: #63b3ed;
   color: white;
 }
 
-/* 聚焦状态 */
 .response-style-toggle input:focus + .toggle-container {
   box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.3);
 }
 
-/* 激活状态 */
 .response-style-toggle.active .toggle-container {
   transform: translateY(1px);
 }
@@ -482,11 +505,11 @@ export default defineComponent({
 .thought-title {
   font-weight: bold;
   margin-bottom: 5px;
-  color: #666; /* 深灰色 */
+  color: #666;
 }
 
 .thought-content {
-  color: #999; /* 浅灰色 */
+  color: #999;
 }
 
 .message-content >>> p {
@@ -576,5 +599,4 @@ export default defineComponent({
 .message-content >>> th {
   background-color: #f8fafc;
 }
-
 </style>

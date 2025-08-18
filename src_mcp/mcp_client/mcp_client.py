@@ -57,7 +57,7 @@ class ChatSession:
                         "mcpServers": {
                             f"{self.server_name}": {
                                 "command": "url",
-                                "url": f"http://localhost:3000/mcp/{mcp_server_id}",
+                                "url": f"http://localhost:3001/mcp/{mcp_server_id}",
                             }
                         }
                     }
@@ -131,7 +131,7 @@ class ChatSession:
             "mcpServers": {
                 f"{self.server_name}": {
                     "command": "url",
-                    "url": f"http://localhost:3000/mcp/{mcp_server_id}",
+                    "url": f"http://localhost:3001/mcp/{mcp_server_id}",
                 }
             }
         }
@@ -215,7 +215,7 @@ class ChatSession:
             "mcpServers": {
                 f"{self.server_name}": {
                     "command": "url",
-                    "url": f"http://localhost:3000/mcp/{mcp_server_id}",
+                    "url": f"http://localhost:3001/mcp/{mcp_server_id}",
                 }
             }
         }

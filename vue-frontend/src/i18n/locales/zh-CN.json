@@ -5,7 +5,8 @@
     "retry": "重试",
     "cancel": "取消",
     "delete": "删除",
-    "send": "发送"
+    "send": "发送",
+    "stop": "停止"
   },
   "login": {
     "title": "用户登录",

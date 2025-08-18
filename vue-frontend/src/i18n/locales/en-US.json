@@ -5,7 +5,8 @@
     "retry": "Retry",
     "cancel": "Cancel",
     "delete": "Delete",
-    "send": "Send"
+    "send": "Send",
+    "stop": "Stop"
   },
   "login": {
     "title": "User Login",
