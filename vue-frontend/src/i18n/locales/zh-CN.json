@@ -72,31 +72,31 @@
         "loadingAgentList": "加载智能体列表...",
         "loadingMcpInfo": "加载MCP绑定信息..."
       }
-    }
-  },
-  "mcp": {
-    "create": {
-      "title": "创建MCP服务",
-      "nameLabel": "名称",
-      "namePlaceholder": "输入MCP服务名称",
-      "creating": "创建中...",
-      "submit": "创建MCP服务"
     },
-    "list": {
-      "title": "MCP服务管理",
-      "newMcp": "新建MCP服务",
-      "loading": "加载MCP服务中...",
-      "name": "名称",
-      "actions": "操作",
-      "manageTools": "管理工具"
-    },
-    "tool": {
-      "title": "工具管理 - MCP {id}",
-      "addNewTool": "添加新工具",
-      "jsonPlaceholder": "输入工具JSON格式",
-      "addTool": "添加工具",
-      "existingTools": "现有工具",
-      "noTools": "暂无工具，请添加"
+    "mcp": {
+      "create": {
+        "title": "创建MCP服务",
+        "nameLabel": "名称",
+        "namePlaceholder": "输入MCP服务名称",
+        "creating": "创建中...",
+        "submit": "创建MCP服务"
+      },
+      "list": {
+        "title": "MCP服务管理",
+        "newMcp": "新建MCP服务",
+        "loading": "加载MCP服务中...",
+        "name": "名称",
+        "actions": "操作",
+        "manageTools": "管理工具"
+      },
+      "tool": {
+        "title": "工具管理 - MCP {id}",
+        "addNewTool": "添加新工具",
+        "jsonPlaceholder": "输入工具JSON格式",
+        "addTool": "添加工具",
+        "existingTools": "现有工具",
+        "noTools": "暂无工具，请添加"
+      }
     }
   },
   "errors": {

@@ -1,7 +1,7 @@
 <template>
   <div class="chat-container">
     <Sidebar
-      :sessions="sessions"
+      :sessions="displayedSessions"
       :activeSessionId="activeSessionId"
       @select-session="handleSelectSession"
       @new-chat="handleNewChat"
@@ -56,6 +56,8 @@ export default defineComponent({
     const isAgent = ref(false);
     const isThought = ref(false);
 
+    const displayedSessions = computed(() => sessions.value);
+
     watch(activeSessionId, async (newId) => {
       if (newId) {
         try {
@@ -99,6 +101,14 @@ export default defineComponent({
       session.messages.push(userMessage);
 
       isWaiting.value = true;
+
+      let refreshTimer: number | null = null;
+      const clearRefreshTimer = () => {
+        if (refreshTimer) {
+          clearTimeout(refreshTimer);
+          refreshTimer = null;
+        }
+      };
 
       const updateContent = (msg: ChatMessage, newData: string) => {
         const index = session.messages.indexOf(msg);
@@ -174,6 +184,15 @@ export default defineComponent({
             }
           }
         }
+
+        clearRefreshTimer(); // 先清除之前的定时器
+        refreshTimer = window.setTimeout(async () => {
+          try {
+            await loadSessions();
+          } catch (error) {
+            console.error(t('errors.refreshFailed'), error);
+          }
+        }, 5000); // 10秒后刷新
       } catch (error) {
         console.error(t('errors.requestFailed'), error);
         session.messages.push({
@@ -259,6 +278,7 @@ export default defineComponent({
       handleNavigation,
       handleDeleteSession,
       handleFileUpload,
+      displayedSessions,
       authStore,
       t
     };
