@@ -108,3 +108,15 @@ class LLMClient:
                 result += delta.content
 
         yield result
+
+    async def get_response_chat(
+        self, messages: list[dict[str, str]], llm_url=None, api_key=None
+    ):
+        self.llm_url = llm_url
+        self.api_key = api_key
+        client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
+
+        response = await client.chat.completions.create(
+            messages=messages, stream=False, model="deepseek-chat"
+        )
+        return response.choices[0].message.content

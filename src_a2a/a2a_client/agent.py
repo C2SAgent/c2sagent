@@ -7,6 +7,8 @@ from typing import Literal
 from uuid import uuid4
 import os
 
+import logging
+
 from core.llm.llm_client import LLMClient
 
 # import google.generativeai as genai
@@ -242,26 +244,24 @@ class Agent:
         agent_answers: list[dict] = []
 
         agents_registry, agent_prompt = await self.get_agents()
-        # response = await self.decide(question, agent_prompt, agent_answers)
 
         response = ""
-        flag = 1
+
         async for chunk in self.decide_streaming(question, agent_prompt, agent_answers):
+            print(chunk)
+
             if chunk["type"] == "thought":
                 yield chunk
-                continue
 
-            if flag == 1:
-                yield {"type": "thought", "data": "\n"}
-                flag = 0
-
-            response += chunk["content"]
+            if chunk["type"] == "text":
+                response += chunk["content"]
             if "</" in response:
                 continue
             elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
                 yield {"type": "thought", "content": chunk["content"]}
 
-        yield {"type": "end", "content": ""}
+        yield {"type": "end", "content": "\n"}
+
         agents = self.extract_agents(response)
 
         if agents:

@@ -45,7 +45,7 @@ class MongoDBManager:
         session_data = {
             "session_id": f"sess_{datetime.now().timestamp()}",
             "user_id": user_id,
-            "title": initial_message["content"][:50],  # 截取前50个字符作为标题
+            "title": "新对话",  # 截取前50个字符作为标题
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
             "messages": [initial_message],
@@ -102,7 +102,6 @@ class MongoDBManager:
                     "$push": {"messages": message},
                     "$set": {
                         "updated_at": datetime.now().isoformat(),
-                        "title": message["content"][:50],  # 更新标题为最新消息的前50个字符
                     },
                 },
             )
@@ -111,6 +110,20 @@ class MongoDBManager:
             )
             return result.modified_count
         except PyMongoError as e:
+            print(f"Update failed: {e}")
+            raise
+
+    async def update_title(self, session_id: str, title: str) -> int:
+        """更新会话"""
+        try:
+            result = await self.collection.update_one(
+                {"session_id": session_id},
+                {
+                    "$set": {"title": title},
+                },
+            )
+            return result.modified_count
+        except Exception as e:
             print(f"Update failed: {e}")
             raise
 

@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+from service.apps.agent.app_a2a import App_A2A
+
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
 from datetime import datetime
@@ -194,234 +196,75 @@ async def stream_ask_a2a(
             # 时序预测处理
             if isTimeSeries and input_data_url:
                 try:
-                    df = pd.read_csv(input_data_url)
-                    if df.empty:
-                        raise ValueError("Uploaded CSV file is empty.")
-
-                    message_user = [
-                        {
-                            "role": "system",
-                            "content": f"数据框头部为：{df.head().to_string()}\n"
-                            "请对上述进行意图分析返回一个dict封装的格式示例如下："
-                            '{"h": 12, "time_col": "date", "target_col": "OT"}'
-                            "其中h为预测长度，必须为整型；time_col为表示时间列的头；target_col是用户所需要预测的那一列标识。"
-                            "其中封装的dict必须是纯净的，不允许有任何注释或其他不相关内容"
-                            "如果数据框头部中没有date和OT，那么请找出最合理的符合date和OT的列，并修改dict中的time_col和target_col的值为对应的列名，如果没有符合OT的列，那么选择最后一列作为target_col"
-                            "如果没有数据框头，默认第一列头标识为time_col，第二列头标识为target_col",
-                        },
-                        {"role": "user", "content": question},
-                    ]
-                    # params_response = await llm_client.get_response(
-                    #     messages=message_user,
-                    #     llm_url=core_llm_url,
-                    #     api_key=core_llm_key,
-                    # )
-                    async for chunk in llm_client.get_stream_com_response(
-                        messages=message_user,
-                        llm_url=core_llm_url,
-                        api_key=core_llm_key,
+                    async for result in App_A2A.do_timeseries_forecast(
+                        input_data_url,
+                        current_user.id,
+                        question,
+                        llm_client,
+                        core_llm_url,
+                        core_llm_key,
+                        predictor,
+                        oss,
+                        session_id,
+                        FORECAST_PATH_PREFIX,
+                        mongo,
+                        agent,
                     ):
-                        yield json.dumps({"event": "thought", "data": chunk}) + "\n\n"
-                        params_response = chunk
-
-                    match_params = re.search(r"({.*?})", params_response, re.DOTALL)
-                    if not match_params:
-                        raise ValueError("Failed to parse LLM response for parameters.")
-
-                    params = json.loads(match_params.group(1).strip())
-                    h = params.get("h", 12)
-                    time_col = params.get("time_col", "date")
-                    target_col = params.get("target_col", "OT")
-
-                    time_fcst_df, fig_data = predictor.predict(
-                        df=df, h=h, time_col=time_col, target_col=target_col
-                    )
-
-                    # 上传预测数据
-                    forecast_csv = time_fcst_df.to_csv(index=False)
-                    data_url = oss.upload_object(
-                        bucket_name="c2sagent",
-                        object_name=f"{FORECAST_PATH_PREFIX}/{session_id}/{datetime.now().isoformat()}_{uuid.uuid4()}.csv",
-                        content=forecast_csv,
-                    )
-
-                    # 上传图表
-                    img_url = oss.upload_object(
-                        bucket_name="c2sagent",
-                        object_name=f"{FORECAST_PATH_PREFIX}/{session_id}/{datetime.now().isoformat()}_{uuid.uuid4()}.png",
-                        content=fig_data,
-                    )
-
-                    # 存储消息
-                    data_message = {
-                        "role": "system",
-                        "content": data_url,
-                        "type": "doc",
-                        "timestamp": datetime.now().isoformat(),
-                    }
-                    await mongo.add_message(session_id, data_message)
-
-                    img_message = {
-                        "role": "system",
-                        "content": img_url,
-                        "type": "img",
-                        "timestamp": datetime.now().isoformat(),
-                    }
-                    await mongo.add_message(session_id, img_message)
-
-                    yield json.dumps({"event": "doc", "data": data_url}) + "\n\n"
-                    yield json.dumps({"event": "img", "data": img_url}) + "\n\n"
-
-                    # 分析结果
-                    question_message = f"""
-                        这是预测结果：\n{time_fcst_df}\n
-                        这是输入数据的最后几条结果：\n{df[-24:]}\n
-                        请对上面的数据做出完整的分析报告，大约150字
-                    """
-                    analysis_thought = ""
-                    analysis_text = ""
-                    async for result in agent.completion(question_message):
-                        if result["type"] == "thought":
-                            analysis_thought += result["content"]
-                            yield json.dumps(
-                                {"event": "thought", "data": result["content"]}
-                            ) + "\n\n"
-                        if result["type"] == "text":
-                            analysis_text += result["content"]
-                            yield json.dumps(
-                                {"event": "text", "data": result["content"]}
-                            ) + "\n\n"
-
-                    thought_message = {
-                        "role": "system",
-                        "content": analysis_thought,
-                        "type": "thought",
-                        "timestamp": datetime.now().isoformat(),
-                        "references": [data_url, img_url],
-                    }
-                    await mongo.add_message(session_id, thought_message)
-
-                    analysis_message = {
-                        "role": "system",
-                        "content": analysis_text,
-                        "type": "text",
-                        "timestamp": datetime.now().isoformat(),
-                        "references": [data_url, img_url],
-                    }
-                    await mongo.add_message(session_id, analysis_message)
-                # yield json.dumps(
-                #     {"event": "text", "data": analysis_result}
-                # ) + "\n\n"
+                        yield result
 
                 except Exception as e:
                     yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
             elif isAgent:
-                question_message = f"""这是user_id:
-                    {current_user.id}
+                question_message = f"""
                     这是历史对话消息：
                     {messages}
                     这是用户的当前消息：
                     {question}
                     如果历史信息没有用处，以及用户没有明确意图时，您只需要正常回答即可
                 """
-                # result = await agent.completion(
-                #     question_message
-                # )
-                message_chunk = ""
-                message_text = ""
-                async for result in agent.completion(question_message):
-                    if result["type"] == "thought":
-                        message_chunk += result["content"]
-                        yield json.dumps(
-                            {"event": "thought", "data": result["content"]}
-                        ) + "\n\n"
-                    if result["type"] == "text":
-                        message_text += result["content"]
-                        yield json.dumps(
-                            {"event": "text", "data": result["content"]}
-                        ) + "\n\n"
-                    if result["type"] == "end":
-                        message_thought = {
-                            "role": "system",
-                            "content": message_chunk,
-                            "type": "thought",
-                            "timestamp": datetime.now().isoformat(),
-                        }
-                        await mongo.add_message(session_id, message_thought)
-                        message_chunk = ""
-                        yield json.dumps({"event": "end", "data": ""}) + "\n\n"
+                try:
+                    async for result in App_A2A.do_multi_agent(
+                        agent,
+                        question_message,
+                        current_user.id,
+                        session_id,
+                        mongo,
+                        llm_client,
+                        core_llm_url,
+                        core_llm_key,
+                    ):
+                        yield result
+                except Exception as e:
+                    yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
-                # # for message in messages:
-                # message_thought = {
-                #     "role": "system",
-                #     "content": message_chunk,
-                #     "type": "thought",
-                #     "timestamp": datetime.now().isoformat(),
-                # }
-                # await mongo.add_message(session_id, message_thought)
-
-                message_result = {
-                    "role": "system",
-                    "content": message_text,
-                    "type": "text",
-                    "timestamp": datetime.now().isoformat(),
-                }
-                await mongo.add_message(session_id, message_result)
             elif isThought:
-                messages_find = await mongo.get_session_by_ids(
-                    str(current_user.id), session_id
-                )
-                question_message = messages_find["messages"]
-
-                message_thougth = ""
-                message_text = ""
-                async for result in llm_client.get_stream_response_reasion_and_content(
-                    question_message, llm_url=core_llm_url, api_key=core_llm_key
-                ):
-                    if result["type"] == "thought":
-                        message_thougth += result["content"]
-                    if result["type"] == "text":
-                        message_text += result["content"]
-                    yield json.dumps(
-                        {"event": result["type"], "data": result["content"]}
-                    ) + "\n\n"
-
-                message_result = {
-                    "role": "system",
-                    "content": message_thougth,
-                    "type": "thought",
-                    "timestamp": datetime.now().isoformat(),
-                }
-                await mongo.add_message(session_id, message_result)
-
-                message_result = {
-                    "role": "system",
-                    "content": message_text,
-                    "type": "text",
-                    "timestamp": datetime.now().isoformat(),
-                }
-                await mongo.add_message(session_id, message_result)
+                try:
+                    async for result in App_A2A.do_llm_thought(
+                        mongo,
+                        current_user.id,
+                        session_id,
+                        llm_client,
+                        core_llm_url,
+                        core_llm_key,
+                    ):
+                        yield result
+                except Exception as e:
+                    yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
             else:
-                messages_find = await mongo.get_session_by_ids(
-                    str(current_user.id), session_id
-                )
-                question_message = messages_find["messages"]
-                message_text = ""
-                async for result in llm_client.get_stream_response_chat(
-                    question_message, llm_url=core_llm_url, api_key=core_llm_key
-                ):
-                    message_text += result
-                    yield json.dumps({"event": "text", "data": result}) + "\n\n"
-
-                message_result = {
-                    "role": "system",
-                    "content": message_text,
-                    "type": "text",
-                    "timestamp": datetime.now().isoformat(),
-                }
-                await mongo.add_message(session_id, message_result)
+                try:
+                    async for result in App_A2A.do_llm(
+                        mongo,
+                        current_user.id,
+                        session_id,
+                        llm_client,
+                        core_llm_url,
+                        core_llm_key,
+                    ):
+                        yield result
+                except Exception as e:
+                    yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
         except Exception as e:
             yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
