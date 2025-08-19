@@ -2,7 +2,7 @@
     "mcpServers":{
         "mcpServer_mcp_calendar":{
             "command": "url",
-            "url": "http://localhost:3000/mcp"
+            "url": "http://localhost:3001/mcp"
         }
     }
 }

@@ -21,6 +21,7 @@
       @update:isTimeSeries="val => isTimeSeries = val"
       @update:isAgent="val => isAgent = val"
       @update:isThought="val => isThought = val"
+      @stop-message="handleStopMessage"
     />
     <div v-else class="empty-chat-area">
       <p>{{ t('views.home.selectOrCreate') }}</p>
@@ -55,6 +56,7 @@ export default defineComponent({
     const isTimeSeries = ref(false);
     const isAgent = ref(false);
     const isThought = ref(false);
+    const shouldStop = ref(false);
 
     const displayedSessions = computed(() => sessions.value);
 
@@ -88,6 +90,10 @@ export default defineComponent({
       uploadedFile.value = file;
     };
 
+    const handleStopMessage = () => {
+      shouldStop.value = true;
+    };
+
     const sendMessage = async (sessionId: string, content: string) => {
       const session = sessions.value.find(s => s.session_id === sessionId);
       if (!session) return;
@@ -101,6 +107,7 @@ export default defineComponent({
       session.messages.push(userMessage);
 
       isWaiting.value = true;
+      shouldStop.value = false;
 
       let refreshTimer: number | null = null;
       const clearRefreshTimer = () => {
@@ -135,64 +142,74 @@ export default defineComponent({
         let currentType: string | null = null;
         let done = false;
 
-        while (!done) {
-          const { value, done: streamDone } = await reader.read();
-          done = streamDone;
+        while (!done && !shouldStop.value) {
+          try {
+            const { value, done: streamDone } = await reader.read();
+            done = streamDone;
 
-          if (value) {
-            const textDecoder = new TextDecoder();
-            const chunk = textDecoder.decode(value);
-            const lines = chunk.split('\n\n').filter(line => line.trim());
+            if (shouldStop.value) {
+              await reader.cancel();
+              break;
+            }
 
-            for (const line of lines) {
-              try {
-                const parsed = JSON.parse(line);
-                const { event, data } = parsed;
+            if (value) {
+              const textDecoder = new TextDecoder();
+              const chunk = textDecoder.decode(value);
+              const lines = chunk.split('\n\n').filter(line => line.trim());
 
-                if (event === 'end') {
-                  currentMessage = null;
-                  currentType = null;
-                  continue;
+              for (const line of lines) {
+                try {
+                  const parsed = JSON.parse(line);
+                  const { event, data } = parsed;
+
+                  if (event === 'end') {
+                    currentMessage = null;
+                    currentType = null;
+                    continue;
+                  }
+
+                  if (event === 'img' || event === 'doc') {
+                    currentMessage = {
+                      content: data,
+                      role: 'system',
+                      type: event,
+                      timestamp: new Date()
+                    };
+                    session.messages.push(currentMessage);
+                    continue;
+                  }
+
+                  if (event !== currentType || !currentMessage) {
+                    currentType = event;
+                    currentMessage = {
+                      content: data,
+                      role: 'system',
+                      type: event === 'thought' ? 'thought' : 'text',
+                      timestamp: new Date()
+                    };
+                    session.messages.push(currentMessage);
+                  } else {
+                    currentMessage = updateContent(currentMessage, data);
+                  }
+                } catch (e) {
+                  console.error(t('errors.parseFailed'), e);
                 }
-
-                if (event === 'img' || event === 'doc') {
-                  currentMessage = {
-                    content: data,
-                    role: 'system',
-                    type: event,
-                    timestamp: new Date()
-                  };
-                  session.messages.push(currentMessage);
-                  continue;
-                }
-
-                if (event !== currentType || !currentMessage) {
-                  currentType = event;
-                  currentMessage = {
-                    content: data,
-                    role: 'system',
-                    type: event === 'thought' ? 'thought' : 'text',
-                    timestamp: new Date()
-                  };
-                  session.messages.push(currentMessage);
-                } else {
-                  currentMessage = updateContent(currentMessage, data);
-                }
-              } catch (e) {
-                console.error(t('errors.parseFailed'), e);
               }
             }
+          } catch (error) {
+
+            done = true;
           }
         }
 
-        clearRefreshTimer(); // 先清除之前的定时器
+        clearRefreshTimer();
         refreshTimer = window.setTimeout(async () => {
           try {
             await loadSessions();
           } catch (error) {
             console.error(t('errors.refreshFailed'), error);
           }
-        }, 5000); // 10秒后刷新
+        }, 5000);
       } catch (error) {
         console.error(t('errors.requestFailed'), error);
         session.messages.push({
@@ -204,6 +221,7 @@ export default defineComponent({
       } finally {
         isWaiting.value = false;
         uploadedFile.value = undefined;
+        shouldStop.value = false;
       }
     };
 
@@ -278,6 +296,7 @@ export default defineComponent({
       handleNavigation,
       handleDeleteSession,
       handleFileUpload,
+      handleStopMessage,
       displayedSessions,
       authStore,
       t

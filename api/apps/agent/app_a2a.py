@@ -159,12 +159,7 @@ async def stream_ask_a2a(
         await mongo.connect()
         try:
             nonlocal session_id
-            predictor = TimeGPT()
-            messages_find = await mongo.get_session_by_ids(
-                str(current_user.id), session_id
-            )
 
-            messages = messages_find["messages"]
             agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
             if not agent_finds:
                 raise HTTPException(
@@ -180,18 +175,13 @@ async def stream_ask_a2a(
                 user_id=current_user.id,
             )
 
-            # 存储用户问题
-            question_msg = {
-                "role": "user",
-                "content": question,
-                "type": "text",
-                "timestamp": datetime.now().isoformat(),
-            }
+            # History Messages
+            messages_find = await mongo.get_session_by_ids(
+                str(current_user.id), session_id
+            )
+            messages = messages_find["messages"]
 
-            if not session_id:
-                session_id = await mongo.create_session(current_user.id, question_msg)
-            else:
-                await mongo.add_message(session_id, question_msg)
+            await App_A2A.save_message(question, mongo, current_user.id, session_id)
 
             # 时序预测处理
             if isTimeSeries and input_data_url:
@@ -203,7 +193,6 @@ async def stream_ask_a2a(
                         llm_client,
                         core_llm_url,
                         core_llm_key,
-                        predictor,
                         oss,
                         session_id,
                         FORECAST_PATH_PREFIX,
@@ -216,55 +205,40 @@ async def stream_ask_a2a(
                     yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
             elif isAgent:
-                question_message = f"""
-                    这是历史对话消息：
-                    {messages}
-                    这是用户的当前消息：
-                    {question}
-                    如果历史信息没有用处，以及用户没有明确意图时，您只需要正常回答即可
-                """
-                try:
-                    async for result in App_A2A.do_multi_agent(
-                        agent,
-                        question_message,
-                        current_user.id,
-                        session_id,
-                        mongo,
-                        llm_client,
-                        core_llm_url,
-                        core_llm_key,
-                    ):
-                        yield result
-                except Exception as e:
-                    yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
+                async for result in App_A2A.do_multi_agent(
+                    agent,
+                    messages,
+                    question,
+                    current_user.id,
+                    session_id,
+                    mongo,
+                    llm_client,
+                    core_llm_url,
+                    core_llm_key,
+                ):
+                    yield result
 
             elif isThought:
-                try:
-                    async for result in App_A2A.do_llm_thought(
-                        mongo,
-                        current_user.id,
-                        session_id,
-                        llm_client,
-                        core_llm_url,
-                        core_llm_key,
-                    ):
-                        yield result
-                except Exception as e:
-                    yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
+                async for result in App_A2A.do_llm_thought(
+                    mongo,
+                    current_user.id,
+                    session_id,
+                    llm_client,
+                    core_llm_url,
+                    core_llm_key,
+                ):
+                    yield result
 
             else:
-                try:
-                    async for result in App_A2A.do_llm(
-                        mongo,
-                        current_user.id,
-                        session_id,
-                        llm_client,
-                        core_llm_url,
-                        core_llm_key,
-                    ):
-                        yield result
-                except Exception as e:
-                    yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
+                async for result in App_A2A.do_llm(
+                    mongo,
+                    current_user.id,
+                    session_id,
+                    llm_client,
+                    core_llm_url,
+                    core_llm_key,
+                ):
+                    yield result
 
         except Exception as e:
             yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"

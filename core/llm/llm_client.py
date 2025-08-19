@@ -1,47 +1,19 @@
-import asyncio
-import json
 import logging
-import os
-import re
-import shutil
-import time
 from typing import AsyncGenerator
-
-from fastmcp import Client
-from mcp.types import TextContent, Tool
 from openai import AsyncOpenAI
-import datetime
 
 
 class LLMClient:
     def __init__(self, llm_url="", api_key="") -> None:
         self.api_key: str = api_key
         self.llm_url: str = llm_url
-        # self.client: AsyncOpenAI = AsyncOpenAI(
-        #     api_key=self.api_key, base_url=self.llm_url
-        # )
-        pass
-
-    async def get_stream_response(
-        self, messages: list[dict[str, str]], llm_url, api_key
-    ) -> AsyncGenerator[str, None]:
-        self.llm_url = llm_url
-        self.api_key = api_key
-        client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
-
-        response = await client.chat.completions.create(
-            messages=messages, stream=True, model="deepseek-reasoner"
-        )
-        async for chunk in response:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                yield delta.content
 
     async def get_stream_response_chat(
-        self, messages: list[dict[str, str]], llm_url, api_key
+        self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ) -> AsyncGenerator[str, None]:
-        self.llm_url = llm_url
-        self.api_key = api_key
+        if llm_url and api_key:
+            self.llm_url = llm_url
+            self.api_key = api_key
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
 
         response = await client.chat.completions.create(
@@ -50,13 +22,14 @@ class LLMClient:
         async for chunk in response:
             delta = chunk.choices[0].delta
             if delta.content:
-                yield delta.content
+                yield {"type": "text", "content": delta.content}
 
     async def get_stream_response_reasion_and_content(
-        self, messages: list[dict[str, str]], llm_url, api_key
+        self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ) -> AsyncGenerator[str, None]:
-        self.llm_url = llm_url
-        self.api_key = api_key
+        if llm_url and api_key:
+            self.llm_url = llm_url
+            self.api_key = api_key
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
 
         response = await client.chat.completions.create(
@@ -72,10 +45,11 @@ class LLMClient:
     async def get_response(
         self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ) -> str:
-        llm_url = llm_url
-        api_key = api_key
+        if llm_url and api_key:
+            self.llm_url = llm_url
+            self.api_key = api_key
 
-        client: AsyncOpenAI = AsyncOpenAI(api_key=api_key, base_url=llm_url)
+        client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
         response = await client.chat.completions.create(
             messages=messages,
             stream=False,
@@ -92,8 +66,9 @@ class LLMClient:
     async def get_stream_com_response(
         self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ) -> AsyncGenerator[str, None]:
-        self.llm_url = llm_url
-        self.api_key = api_key
+        if llm_url and api_key:
+            self.llm_url = llm_url
+            self.api_key = api_key
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
         response = await client.chat.completions.create(
             messages=messages, stream=True, model="deepseek-reasoner"
@@ -112,8 +87,9 @@ class LLMClient:
     async def get_response_chat(
         self, messages: list[dict[str, str]], llm_url=None, api_key=None
     ):
-        self.llm_url = llm_url
-        self.api_key = api_key
+        if llm_url and api_key:
+            self.llm_url = llm_url
+            self.api_key = api_key
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
 
         response = await client.chat.completions.create(

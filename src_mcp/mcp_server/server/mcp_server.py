@@ -69,7 +69,7 @@ current_tool_group: ContextVar[str] = ContextVar("current_tool_group", default=N
 
 
 @click.command()
-@click.option("--port", default=3000, help="Port to listen on for HTTP")
+@click.option("--port", default=3001, help="Port to listen on for HTTP")
 @click.option(
     "--log-level",
     default="INFO",

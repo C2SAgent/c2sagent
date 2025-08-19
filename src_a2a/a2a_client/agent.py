@@ -51,40 +51,6 @@ with Path(dir_path / "agent_answer.jinja").open("r") as f:
     agent_answer_template = Template(f.read())
 
 
-async def completion_llm(prompt: str, llm_client: LLMClient) -> Generator[str]:
-    """Stream LLM response.
-
-    Args:
-        prompt (str): The prompt to send to the LLM.
-
-    Returns:
-        Generator[str, None, None]: A generator of the LLM response.
-    """
-    # llm_client = LLMClient(os.getenv("API_KEY"))
-    messages = [{"role": "system", "content": prompt}]
-    response = await llm_client.get_response(
-        messages, llm_client.llm_url, llm_client.api_key
-    )
-    return response
-
-
-def stream_llm(prompt: str, llm_client: LLMClient) -> Generator[str]:
-    """Stream LLM response.
-
-    Args:
-        prompt (str): The prompt to send to the LLM.
-
-    Returns:
-        Generator[str, None, None]: A generator of the LLM response.
-    """
-    # client = genai.Client(api_key=GOOGLE_API_KEY)
-    messages = [{"role": "system", "content": prompt}]
-    for chunk in llm_client.get_stream_response(
-        messages, llm_client.llm_url, llm_client.api_key
-    ):
-        yield chunk
-
-
 class Agent:
     """Agent for interacting with the Google Gemini LLM in different modes."""
 
@@ -120,50 +86,6 @@ class Agent:
             }
             agent_prompt = agents_template.render(agent_cards=agent_cards)
             return agents_registry, agent_prompt
-
-    async def call_llm(self, prompt: str) -> str:
-        """Call the LLM with the given prompt and return the response as a string or generator.
-
-        Args:
-            prompt (str): The prompt to send to the LLM.
-
-        Returns:
-            str or Generator[str]: The LLM response as a string or generator, depending on mode.
-        """  # noqa: E501
-        user_find = db.fetch_one(UserConfig, id=self.user_id)
-        core_llm_url = user_find.core_llm_url
-        core_llm_key = user_find.core_llm_key
-        llm_client = LLMClient(core_llm_url, core_llm_key)
-        return await completion_llm(prompt, llm_client)
-
-    async def decide(
-        self,
-        question: str,
-        agents_prompt: str,
-        called_agents: list[dict] | None = None,
-    ) -> Generator[str, None]:
-        """Decide which agent(s) to use to answer the question.
-
-        Args:
-            question (str): The question to answer.
-            agents_prompt (str): The prompt describing available agents.
-            called_agents (list[dict] | None): Previously called agents and their answers.
-
-        Returns:
-            Generator[str, None]: The LLM's response as a generator of strings.
-        """  # noqa: E501
-        if called_agents:
-            call_agent_prompt = agent_answer_template.render(
-                called_agents=called_agents
-            )
-        else:
-            call_agent_prompt = ""
-        prompt = decide_template.render(
-            question=question,
-            agent_prompt=agents_prompt,
-            call_agent_prompt=call_agent_prompt,
-        )
-        return await self.call_llm(prompt)
 
     def extract_agents(self, response: str) -> list[dict]:
         """Extract the agents from the response.
