@@ -133,6 +133,12 @@ export default defineComponent({
       emit('update:isThought', newVal === 'thought');
     });
 
+    watch(() => props.isWaiting, (newVal) => {
+      if (!newVal) {
+        isSending.value = false;
+      }
+    });
+
     watch(() => props.isTimeSeries, (newVal) => {
       emit('update:isTimeSeries', newVal);
     });

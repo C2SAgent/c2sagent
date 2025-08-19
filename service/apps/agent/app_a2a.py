@@ -16,6 +16,25 @@ from src_a2a.a2a_client.agent import Agent
 
 class App_A2A:
     @staticmethod
+    async def save_message(
+        question: str,
+        mongo: MongoDBManager,
+        current_user_id: int,
+        session_id: str,
+    ):
+        question_msg = {
+            "role": "user",
+            "content": question,
+            "type": "text",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        if not session_id:
+            session_id = await mongo.create_session(current_user_id, question_msg)
+        else:
+            await mongo.add_message(session_id, question_msg)
+
+    @staticmethod
     async def do_timeseries_forecast(
         input_data_url: str,
         current_user_id: int,
@@ -23,7 +42,6 @@ class App_A2A:
         llm_client: LLMClient,
         core_llm_url: str,
         core_llm_key: str,
-        predictor: TimeGPT,
         oss: OSSManager,
         session_id: str,
         FORECAST_PATH_PREFIX: str,
@@ -50,6 +68,7 @@ class App_A2A:
             生成器，产生不同事件的数据流
         """
         # 读取数据
+        predictor = TimeGPT()
         df = pd.read_csv(input_data_url)
         if df.empty:
             raise ValueError("Uploaded CSV file is empty.")
@@ -228,7 +247,8 @@ class App_A2A:
     @staticmethod
     async def do_multi_agent(
         agent: Agent,
-        question_message: str,
+        messages: str,
+        question: str,
         current_user_id: int,
         session_id: str,
         mongo: MongoDBManager,
@@ -241,12 +261,20 @@ class App_A2A:
 
         参数:
             agent: 代理对象，需要有completion方法
-            question_message: 要发送给代理的问题消息
+            messages: 历史消息
+            question: 用户输入的问句
             session_id: 当前会话ID
             mongo: MongoDB操作对象
 
         返回:
             异步生成器，生成JSON格式的事件字符串
+        """
+        question_message = f"""
+            这是历史对话消息：
+            {messages}
+            这是用户的当前消息：
+            {question}
+            如果历史信息没有用处，以及用户没有明确意图时，您只需要正常回答即可
         """
         message_chunk = ""
         message_text = ""
@@ -393,8 +421,8 @@ class App_A2A:
         async for chunk in llm_client.get_stream_response_chat(
             messages["messages"], llm_url=core_llm_url, api_key=core_llm_key
         ):
-            message_text += chunk
-            yield json.dumps({"event": "text", "data": chunk}) + "\n\n"
+            message_text += chunk["content"]
+            yield json.dumps({"event": "text", "data": chunk["content"]}) + "\n\n"
 
         # 保存完整响应到数据库
         await mongo.add_message(
