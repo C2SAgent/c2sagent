@@ -24,18 +24,23 @@ class CoreAgentExecutor(AgentExecutor):
     """Test AgentProxy Implementation."""
 
     def __init__(self, agent_index: int = None):
-        self.agent_index = agent_index
 
-        self.agent_find = db.fetch_one(AgentCard, id=self.agent_index)
-
-        agentmcp_find = db.fetch_one(AgentCardAndMcpServer, agent_card_id=agent_index)
-
+        self.agent_find = None
+        self.mcp_server_find = None
         self.mcp_server_id = None
 
-        if agentmcp_find:
-            self.mcp_server_id = db.fetch_one(
+        self.agent_index = agent_index
+
+        if self.agent_index != 0:
+            self.agent_find = db.fetch_one(AgentCard, id=self.agent_index)
+
+        if self.agent_find:
+            self.mcp_server_find = db.fetch_one(
                 AgentCardAndMcpServer, agent_card_id=agent_index
-            ).mcp_server_id
+            )
+
+        if self.mcp_server_find:
+            self.mcp_server_id = self.mcp_server_find.mcp_server_id
 
     @override
     async def execute(
@@ -43,6 +48,24 @@ class CoreAgentExecutor(AgentExecutor):
         context: RequestContext,
         event_queue: EventQueue,
     ) -> None:
+
+        if not self.agent_find:
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    status=TaskStatus(
+                        state=TaskState.completed,
+                        message=new_agent_text_message(
+                            "Agent not found for this user",
+                            task.contextId,
+                            task.id,
+                        ),
+                    ),
+                    final=True,
+                    contextId=task.contextId,
+                    taskId=task.id,
+                )
+            )
+
         self.agent = Agent(
             mode="complete",
             token_stream_callback=print,
