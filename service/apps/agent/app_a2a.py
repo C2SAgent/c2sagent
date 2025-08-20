@@ -236,7 +236,7 @@ class App_A2A:
         prompt_list = [
             {
                 "role": "system",
-                "content": f"### 这是历史对话：\n{messages} \n ### 请生成一个摘要，仅返回一个标题，标题长度不超过10个字，请勿返回其他任何内容。",
+                "content": f"### 这是历史对话：\n{messages} \n ### 请对聊天内容总结为一个标题，标题长度不超过10个字，请勿返回其他任何内容。",
             }
         ]
         abstract_title = await llm_client.get_response_chat(
@@ -349,7 +349,10 @@ class App_A2A:
 
         # 处理LLM流式响应
         async for result in llm_client.get_stream_response_reasion_and_content(
-            question_message, llm_url=core_llm_url, api_key=core_llm_key
+            question_message,
+            llm_url=core_llm_url,
+            api_key=core_llm_key,
+            model_name="deepseek-reasoner",
         ):
             if result["type"] == "thought":
                 message_thought += result["content"]

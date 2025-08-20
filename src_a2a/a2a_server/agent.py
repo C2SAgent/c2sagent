@@ -80,15 +80,16 @@ class Agent:
             called_tools (list[dict]): The tools that have been called.
         """
         if not self.mcp_server_id:
-            return "No MCP Server found"
+            yield "No MCP Server found"
 
-        async for chunk in call_mcp_client_streaming(
-            "http://localhost:8000/app_mcp/ask_mcp_streaming",
-            query=question,
-            agent_index=self.agent_index,
-            mcp_server_id=self.mcp_server_id,
-        ):
-            yield chunk
+        else:
+            async for chunk in call_mcp_client_streaming(
+                "http://localhost:8000/app_mcp/ask_mcp_streaming",
+                query=question,
+                agent_index=self.agent_index,
+                mcp_server_id=self.mcp_server_id,
+            ):
+                yield chunk
 
     async def stream(self, question: str) -> AsyncGenerator[str]:
         """Stream the process of answering a question, possibly involving tool calls.

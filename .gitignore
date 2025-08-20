@@ -198,3 +198,4 @@ cython_debug/
 node_modules/
 cache/
 ssl/
+tests/

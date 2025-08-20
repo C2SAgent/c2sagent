@@ -170,7 +170,7 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
             agent_index = request.path_params.get("agent_index")
             self.task_store = InMemoryTaskStore()
             self.http_handler.agent_executor = CoreAgentExecutor(
-                agent_index=agent_index, isStreaming=True
+                agent_index=agent_index
             )
 
             if not agent_index:

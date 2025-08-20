@@ -93,6 +93,7 @@ class Agent:
         Args:
             response (str): The response from the LLM.
         """
+
         pattern = r"```json\n(.*?)\n```"
         match = re.search(pattern, response, re.DOTALL)
         if match:
@@ -168,23 +169,25 @@ class Agent:
         agents_registry, agent_prompt = await self.get_agents()
 
         response = ""
+        thought_response = ""
 
         async for chunk in self.decide_streaming(question, agent_prompt, agent_answers):
             print(chunk)
 
             if chunk["type"] == "thought":
+                thought_response += chunk["content"]
                 yield chunk
-
-            if chunk["type"] == "text":
+                continue
+            else:
                 response += chunk["content"]
+
             if "</" in response:
                 continue
             elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
                 yield {"type": "thought", "content": chunk["content"]}
 
         yield {"type": "end", "content": "\n"}
-
-        agents = self.extract_agents(response)
+        agents = self.extract_agents(response if response != "" else thought_response)
 
         if agents:
             for agent in agents:
@@ -229,12 +232,15 @@ class Agent:
         user_find = db.fetch_one(UserConfig, id=self.user_id)
         core_llm_url = user_find.core_llm_url
         core_llm_key = user_find.core_llm_key
-        llm_client = LLMClient(core_llm_url, core_llm_key)
+        llm_client = LLMClient()
 
-        async for chunk in llm_client.get_stream_response_reasion_and_content(
-            prompt, core_llm_url, core_llm_key
+        async for result in llm_client.get_stream_response_reasion_and_content(
+            messages=prompt,
+            llm_url=core_llm_url,
+            api_key=core_llm_key,
+            model_name="deepseek-reasoner",
         ):
-            yield chunk
+            yield result
 
     async def decide_streaming(
         self,
@@ -263,7 +269,7 @@ class Agent:
             agent_prompt=agents_prompt,
             call_agent_prompt=call_agent_prompt,
         )
-        prompt_list = [{"role": "system", "content": prompt}]
+        prompt_list = [{"role": "system", "content": rf"{prompt}"}]
         async for chunk in self.call_llm_streaming(prompt_list):
             yield chunk
 
