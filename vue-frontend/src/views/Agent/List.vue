@@ -9,7 +9,7 @@
         <router-link to="/" class="secondary-btn">
           {{ t('views.agent.list.chatWithTeam') }}
         </router-link>
-        <router-link to="/mcp/create" class="primary-btn">
+        <router-link to="/mcp/list" class="primary-btn">
           <span>⚙️</span> {{ t('components.sidebar.manageMcp') }}
         </router-link>
       </div>
