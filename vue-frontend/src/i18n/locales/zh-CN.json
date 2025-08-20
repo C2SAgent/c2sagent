@@ -88,7 +88,8 @@
         "loading": "加载MCP服务中...",
         "name": "名称",
         "actions": "操作",
-        "manageTools": "管理工具"
+        "manageTools": "管理工具",
+        "deleteMcp": "删除 MCP"
       },
       "tool": {
         "title": "工具管理 - MCP {id}",
@@ -114,6 +115,7 @@
     "loadDataFailed": "加载数据失败",
     "unknownError": "未知错误",
     "deleteFailed": "删除失败",
+    "discorrMCP": "该智能体绑定了MCP，请先解绑",
     "bindFailed": "绑定失败",
     "unbindFailed": "解绑失败",
     "invalidJson": "无效的JSON格式",

@@ -9,6 +9,9 @@
         <router-link to="/" class="secondary-btn">
           {{ t('views.agent.list.chatWithTeam') }}
         </router-link>
+        <router-link to="/mcp/create" class="primary-btn">
+          <span>⚙️</span> {{ t('components.sidebar.manageMcp') }}
+        </router-link>
       </div>
     </div>
 
@@ -115,8 +118,11 @@
           </select>
         </div>
         <div class="modal-footer">
+          <router-link to="/mcp/create" class="primary-btn">
+            <span>+</span> {{ t('views.mcp.list.newMcp') }}
+          </router-link>
           <button @click="cancelBind" class="modal-cancel-btn">{{ t('common.cancel') }}</button>
-          <button @click="confirmBind" :disabled="!selectedMcpId" class="modal-confirm-btn">{{ t('agent.list.confirmBind') }}</button>
+          <button @click="confirmBind" :disabled="!selectedMcpId" class="modal-confirm-btn">{{ t('views.agent.list.confirmBind') }}</button>
         </div>
       </div>
     </div>
@@ -196,7 +202,7 @@ const deleteAgent = async (id: number) => {
     await AgentApi.delete(id)
     agents.value = agents.value.filter(a => a.id !== id)
   } catch (error) {
-    alert(t('errors.deleteFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
+    alert(t('errors.deleteFailed')+ ": " + t('errors.discorrMCP'))// + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 

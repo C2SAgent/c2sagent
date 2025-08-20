@@ -36,10 +36,10 @@
     </div>
     <div class="message-input">
       <div class="input-options">
-        <label class="response-style-toggle" @click.prevent="toggleProxy('timeSeries')">
+        <!-- <label class="response-style-toggle" @click.prevent="toggleProxy('timeSeries')">
           <input type="checkbox" :checked="selectedProxy === 'timeSeries'" style="display: none;" />
           <span class="toggle-container">{{ t('components.chatArea.timeSeries') }}</span>
-        </label>
+        </label> -->
 
         <label class="response-style-toggle" @click.prevent="toggleProxy('agent')">
           <input type="checkbox" :checked="selectedProxy === 'agent'" style="display: none;" />
@@ -51,11 +51,11 @@
           <span class="toggle-container">{{ t('components.chatArea.deepThought') }}</span>
         </label>
 
-        <label class="file-upload-button">
+        <!-- <label class="file-upload-button">
           <input type="file" @change="handleFileChange" accept=".csv, .txt" style="display: none;" ref="fileInput" />
           {{ t('components.chatArea.uploadFile') }}
           <span v-if="uploadedFile" class="file-name">{{ uploadedFile.name }}</span>
-        </label>
+        </label> -->
       </div>
       <div class="input-container">
         <input
