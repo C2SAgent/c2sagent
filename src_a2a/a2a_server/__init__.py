@@ -245,7 +245,7 @@ def main(host: str, port: int):
 
     task_store = InMemoryTaskStore()
     request_handler = DefaultRequestHandler(
-        agent_executor=CoreAgentExecutor(1),
+        agent_executor=CoreAgentExecutor(0),
         task_store=task_store,
     )
     server = DatabaseA2AStarletteApplication(db, request_handler)
