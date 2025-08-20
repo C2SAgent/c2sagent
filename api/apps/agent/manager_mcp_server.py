@@ -40,6 +40,17 @@ async def do_mcp_create(
     return BaseResponse()
 
 
+@app.post("/delete", response_model=BaseResponse)
+async def do_mcp_delete(
+    request: Request,
+    id: int = Body(...),
+    current_user: models.UserConfig = Depends(auth.get_current_active_user),
+):
+    await db.delete(models.McpServer, id=id)
+
+    return BaseResponse()
+
+
 @app.get("/list", response_model=ListResponse)
 async def do_mcp_list(
     current_user: models.UserConfig = Depends(auth.get_current_active_user),

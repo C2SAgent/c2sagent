@@ -202,7 +202,7 @@ const deleteAgent = async (id: number) => {
     await AgentApi.delete(id)
     agents.value = agents.value.filter(a => a.id !== id)
   } catch (error) {
-    alert(t('errors.deleteFailed') + ': ' + (error instanceof Error ? error.message : t('errors.unknownError')))
+    alert(t('errors.deleteFailed')+ ": " + t('errors.discorrMCP'))// + (error instanceof Error ? error.message : t('errors.unknownError')))
   }
 }
 

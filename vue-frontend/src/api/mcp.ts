@@ -9,6 +9,10 @@ export const McpApi = {
     return await api.post('/manager_mcp/create', name)
   },
 
+  async delete(id: number) {
+    return await api.post('/manager_mcp/delete', id)
+  },
+
   // 获取MCP列表
   async list() {
     return await api.get('/manager_mcp/list')

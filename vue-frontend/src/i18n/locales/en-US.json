@@ -88,7 +88,8 @@
         "loading": "Loading MCP services...",
         "name": "Name",
         "actions": "Actions",
-        "manageTools": "Manage Tools"
+        "manageTools": "Manage Tools",
+        "deleteMcp": "Delete MCP"
       },
       "tool": {
         "title": "Tool Management - MCP {id}",
@@ -114,6 +115,7 @@
     "loadDataFailed": "Failed to load data",
     "unknownError": "Unknown error",
     "deleteFailed": "Delete failed",
+    "discorrMCP": "The Agent is bound to a MCP, please unbind it first",
     "bindFailed": "Binding failed",
     "unbindFailed": "Unbinding failed",
     "invalidJson": "Invalid JSON format",
