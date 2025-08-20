@@ -79,6 +79,9 @@ class Agent:
             question (str): The question to answer.
             called_tools (list[dict]): The tools that have been called.
         """
+        if not self.mcp_server_id:
+            return "No MCP Server found"
+
         async for chunk in call_mcp_client_streaming(
             "http://localhost:8000/app_mcp/ask_mcp_streaming",
             query=question,
