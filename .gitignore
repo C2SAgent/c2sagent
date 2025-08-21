@@ -199,4 +199,4 @@ node_modules/
 cache/
 ssl/
 tests/
-./enhanced_server_tool_db.json
+enhanced_server_tool_db.json
