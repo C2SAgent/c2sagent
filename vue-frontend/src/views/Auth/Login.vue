@@ -1,17 +1,28 @@
+<!-- src/views/LoginView.vue -->
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { useI18n } from 'vue-i18n';
 
 const { t, locale } = useI18n();
-
-const changeLang = (lang: 'zh-CN' | 'en-US') => {
-  locale.value = lang;
-};
-
 const router = useRouter();
 const authStore = useAuthStore();
+
+// 立即从 localStorage 读取保存的语言设置（兼容SSR）
+const savedLang = typeof localStorage !== 'undefined'
+  ? localStorage.getItem('userLanguage')
+  : null;
+if (savedLang) {
+  locale.value = savedLang;
+}
+
+// 监听语言变化并实时保存到 localStorage
+watch(locale, (newLang) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('userLanguage', newLang);
+  }
+}, { immediate: true });
 
 const form = ref({
   username: '',
@@ -50,9 +61,9 @@ async function handleSubmit() {
 
 <template>
   <div class="page-container">
-    <!-- 添加语言切换下拉框到右上角 -->
+    <!-- 语言切换下拉框 -->
     <div class="language-switcher">
-      <select v-model="locale" @change="changeLang(locale as 'zh-CN' | 'en-US')">
+      <select v-model="locale">
         <option value="zh-CN">中文</option>
         <option value="en-US">English</option>
       </select>
@@ -124,7 +135,7 @@ async function handleSubmit() {
 
 <style scoped>
 .page-container {
-  position: relative; /* 为语言切换器定位做准备 */
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -135,7 +146,6 @@ async function handleSubmit() {
   background-size: cover;
 }
 
-/* 新增语言切换器样式 */
 .language-switcher {
   position: absolute;
   top: 20px;
@@ -148,7 +158,6 @@ async function handleSubmit() {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background-color: white;
-  /* color: #4f46e5; */
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
