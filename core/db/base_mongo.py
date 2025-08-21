@@ -6,7 +6,6 @@ import os
 
 load_dotenv()
 
-# 配置MongoDB连接（从环境变量读取更安全）
 MONGO_URI = os.getenv(
     "MONGO_URI", "mongodb://root:your_secure_password@localhost:27017/"
 )
