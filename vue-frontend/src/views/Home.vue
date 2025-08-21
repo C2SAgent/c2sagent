@@ -94,136 +94,140 @@ export default defineComponent({
       shouldStop.value = true;
     };
 
-    const sendMessage = async (sessionId: string, content: string) => {
-      const session = sessions.value.find(s => s.session_id === sessionId);
-      if (!session) return;
+const sendMessage = async (sessionId: string, content: string) => {
+  const session = sessions.value.find(s => s.session_id === sessionId);
+  if (!session) return;
 
-      const userMessage: ChatMessage = {
-        content,
-        role: 'user',
-        type: 'text',
-        timestamp: new Date()
-      };
-      session.messages.push(userMessage);
+  const userMessage: ChatMessage = {
+    content,
+    role: 'user',
+    type: 'text',
+    timestamp: new Date()
+  };
+  session.messages.push(userMessage);
 
-      isWaiting.value = true;
-      shouldStop.value = false;
+  isWaiting.value = true;
+  shouldStop.value = false;
 
-      let refreshTimer: number | null = null;
-      const clearRefreshTimer = () => {
-        if (refreshTimer) {
-          clearTimeout(refreshTimer);
-          refreshTimer = null;
-        }
-      };
+  // 添加一个变量来存储更新标题的计时器
+  let updateTitleTimer: number | null = null;
 
-      const updateContent = (msg: ChatMessage, newData: string) => {
-        const index = session.messages.indexOf(msg);
-        if (index !== -1) {
-          const newMsg = {...msg, content: msg.content + newData};
-          session.messages.splice(index, 1, newMsg);
-          return newMsg;
-        }
-        return msg;
-      };
+  const updateContent = (msg: ChatMessage, newData: string) => {
+    const index = session.messages.indexOf(msg);
+    if (index !== -1) {
+      const newMsg = {...msg, content: msg.content + newData};
+      session.messages.splice(index, 1, newMsg);
+      return newMsg;
+    }
+    return msg;
+  };
 
+  try {
+    const stream = await AgentApi.askAgentStreaming(
+      sessionId,
+      content,
+      isTimeSeries.value,
+      isAgent.value,
+      isThought.value,
+      uploadedFile.value
+    );
+
+    const reader = stream.getReader();
+    let currentMessage: ChatMessage | null = null;
+    let currentType: string | null = null;
+    let done = false;
+
+    while (!done && !shouldStop.value) {
       try {
-        const stream = await AgentApi.askAgentStreaming(
-          sessionId,
-          content,
-          isTimeSeries.value,
-          isAgent.value,
-          isThought.value,
-          uploadedFile.value
-        );
+        const { value, done: streamDone } = await reader.read();
+        done = streamDone;
 
-        const reader = stream.getReader();
-        let currentMessage: ChatMessage | null = null;
-        let currentType: string | null = null;
-        let done = false;
-
-        while (!done && !shouldStop.value) {
-          try {
-            const { value, done: streamDone } = await reader.read();
-            done = streamDone;
-
-            if (shouldStop.value) {
-              await reader.cancel();
-              break;
-            }
-
-            if (value) {
-              const textDecoder = new TextDecoder();
-              const chunk = textDecoder.decode(value);
-              const lines = chunk.split('\n\n').filter(line => line.trim());
-
-              for (const line of lines) {
-                try {
-                  const parsed = JSON.parse(line);
-                  const { event, data } = parsed;
-
-                  if (event === 'end') {
-                    currentMessage = null;
-                    currentType = null;
-                    continue;
-                  }
-
-                  if (event === 'img' || event === 'doc') {
-                    currentMessage = {
-                      content: data,
-                      role: 'system',
-                      type: event,
-                      timestamp: new Date()
-                    };
-                    session.messages.push(currentMessage);
-                    continue;
-                  }
-
-                  if (event !== currentType || !currentMessage) {
-                    currentType = event;
-                    currentMessage = {
-                      content: data,
-                      role: 'system',
-                      type: event === 'thought' ? 'thought' : 'text',
-                      timestamp: new Date()
-                    };
-                    session.messages.push(currentMessage);
-                  } else {
-                    currentMessage = updateContent(currentMessage, data);
-                  }
-                } catch (e) {
-                  console.error(t('errors.parseFailed'), e);
-                }
-              }
-            }
-          } catch (error) {
-
-            done = true;
-          }
+        if (shouldStop.value) {
+          await reader.cancel();
+          break;
         }
 
-        clearRefreshTimer();
-        refreshTimer = window.setTimeout(async () => {
-          try {
-            await loadSessions();
-          } catch (error) {
-            console.error(t('errors.refreshFailed'), error);
+        if (value) {
+          const textDecoder = new TextDecoder();
+          const chunk = textDecoder.decode(value);
+          const lines = chunk.split('\n\n').filter(line => line.trim());
+
+          for (const line of lines) {
+            try {
+              const parsed = JSON.parse(line);
+              const { event, data } = parsed;
+
+              if (event === 'end') {
+                currentMessage = null;
+                currentType = null;
+                continue;
+              }
+
+              if (event === 'img' || event === 'doc') {
+                currentMessage = {
+                  content: data,
+                  role: 'system',
+                  type: event,
+                  timestamp: new Date()
+                };
+                session.messages.push(currentMessage);
+                continue;
+              }
+
+              if (event !== currentType || !currentMessage) {
+                currentType = event;
+                currentMessage = {
+                  content: data,
+                  role: 'system',
+                  type: event === 'thought' ? 'thought' : 'text',
+                  timestamp: new Date()
+                };
+                session.messages.push(currentMessage);
+              } else {
+                currentMessage = updateContent(currentMessage, data);
+              }
+            } catch (e) {
+              console.error(t('errors.parseFailed'), e);
+            }
           }
-        }, 5000);
+        }
       } catch (error) {
-        console.error(t('errors.requestFailed'), error);
-        session.messages.push({
-          content: t('errors.requestFailed'),
-          role: 'system',
-          type: 'text',
-          timestamp: new Date()
-        });
-      } finally {
-        isWaiting.value = false;
-        uploadedFile.value = undefined;
-        shouldStop.value = false;
+        done = true;
       }
-    };
+    }
+  } catch (error) {
+    console.error(t('errors.requestFailed'), error);
+    session.messages.push({
+      content: t('errors.requestFailed'),
+      role: 'system',
+      type: 'text',
+      timestamp: new Date()
+    });
+  } finally {
+    isWaiting.value = false;
+    uploadedFile.value = undefined;
+    shouldStop.value = false;
+
+    // 清除之前的计时器（如果有）
+    if (updateTitleTimer) {
+      clearTimeout(updateTitleTimer);
+    }
+
+    // 设置新的计时器，6秒后更新标题
+    updateTitleTimer = setTimeout(async () => {
+      try {
+        const freshData = await HistoryApi.load(sessionId);
+        const updatedSession = sessions.value.find(s => s.session_id === sessionId);
+        if (updatedSession && freshData.title !== updatedSession.title) {
+          updatedSession.title = freshData.title;
+          // 这里只需要更新title，不会触发整个组件的刷新
+        }
+      } catch (error) {
+        console.error(t('errors.updateTitleFailed'), error);
+      }
+    }, 5000) as unknown as number;
+  }
+};
 
     const handleSelectSession = (sessionId: string) => {
       activeSessionId.value = sessionId;
