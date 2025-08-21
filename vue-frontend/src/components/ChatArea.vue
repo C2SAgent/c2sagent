@@ -72,7 +72,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType, ref, watch, nextTick, onMounted, computed } from 'vue';
+import { defineComponent, type PropType, ref, watch, nextTick, onMounted, computed, onBeforeUnmount } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { ChatMessage } from '@/types/chat';
@@ -220,12 +220,20 @@ export default defineComponent({
       });
     };
 
-    watch(() => props.messages, scrollToBottom, { deep: true });
+    watch(() => [...props.messages], (newVal, oldVal) => {
+      if (newVal.length !== oldVal.length) {
+        scrollToBottom();
+      }
+    }, { deep: true });
 
     onMounted(() => {
-      scrollToBottom()
+      scrollToBottom();
+      window.addEventListener('resize', scrollToBottom);
     })
 
+    onBeforeUnmount(() => {
+      window.removeEventListener('resize', scrollToBottom);
+    });
     return {
       t,
       newMessage,

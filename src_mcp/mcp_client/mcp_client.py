@@ -83,6 +83,7 @@ class ChatSession:
                                 logging.info(
                                     f"{tool_call['tool']} execution result: {result}"
                                 )
+
                                 results += f"{tool_call['tool']} execution result: {[res.text for res in filter(lambda x: True if isinstance(x, TextContent) else False, result)]}\n"
                             except Exception as e:
                                 error_msg = f"Error executing tool: {str(e)}"
@@ -185,34 +186,41 @@ class ChatSession:
         )
         messages = [{"role": "system", "content": system_message}] + messages
 
-        llm_response = ""
-        async for chunk in self.llm_client.get_stream_response_reasion_and_content(
-            messages, self.llm_client.llm_url, self.llm_client.api_key
-        ):
-            if chunk["type"] == "text":
-                llm_response += chunk["content"]
-            event = {
-                "is_task_complete": False,
-                "require_user_input": False,
-                "content": chunk["content"],
-            }
-            yield event
-        yield {
-            "is_task_complete": False,
-            "require_user_input": False,
-            "content": "\n",
-        }
+        # llm_response = ""
+        # async for chunk in self.llm_client.get_stream_response_reasion_and_content(
+        #     messages, self.llm_client.llm_url, self.llm_client.api_key, model_name="deepseek-reasoner"
+        # ):
+        #     if chunk["type"] == "text":
+        #         llm_response += chunk["content"]
+        #     event = {
+        #         "is_task_complete": False,
+        #         "require_user_input": False,
+        #         "content": chunk["content"],
+        #     }
+        #     yield event
+        # yield {
+        #     "is_task_complete": False,
+        #     "require_user_input": False,
+        #     "content": "\n",
+        # }
 
-        logging.info(f"\nAssistant: {llm_response}")
-
-        result = await self.process_llm_response(llm_response, mcp_server_id)
+        # logging.info(f"\nAssistant: {llm_response}")
+        result = "start_process_llm_response"
+        llm_response = "start_llm_response"
         while result != llm_response:
-            messages.append({"role": "assistant", "content": llm_response})
-            messages.append({"role": "user", "content": result})
+            if result != "start_process_llm_response":
+                yield {
+                    "is_task_complete": False,
+                    "require_user_input": False,
+                    "content": f"\n\n**调用MCP工具得到结果**：\n\n{result}\n\n",
+                }
             llm_response = ""
 
             async for chunk in self.llm_client.get_stream_response_reasion_and_content(
-                messages, self.llm_client.llm_url, self.llm_client.api_key
+                messages,
+                self.llm_client.llm_url,
+                self.llm_client.api_key,
+                model_name="deepseek-reasoner",
             ):
                 if chunk["type"] == "text":
                     llm_response += chunk["content"]
@@ -230,6 +238,8 @@ class ChatSession:
 
             logging.info(f"\nAssistant: {llm_response}")
             result = await self.process_llm_response(llm_response, mcp_server_id)
+            messages.append({"role": "assistant", "content": llm_response})
+            messages.append({"role": "user", "content": result})
 
         yield {"is_task_complete": True, "require_user_input": False, "content": result}
 

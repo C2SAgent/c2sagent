@@ -4,11 +4,13 @@
 
 # C2S Agent
 
-C2S Agent 是一个AI Agent构建平台，提供在线可配置的Agent，MCP服务，这意味只要你有一个HTTP请求的接口，就可以把他配置成为一个MCP工具，同时Agent之间可以进行自交流，像一个团队解决您的问题
+C2S Agent is an AI Agent construction platform that provides configurable online Agents and MCP services. This means that as long as you have an HTTP request interface, you can configure it into an MCP tool. Additionally, Agents can communicate with each other, working as a team to solve your problems.
+
+English | [简体中文](./README_zh.md)
 
 </div>
 
-## 🛸 在线使用
+## 🛸 Online Access
 
 - [www.c2sagent.com](http://www.c2sagent.com/)
 
@@ -17,79 +19,74 @@ C2S Agent 是一个AI Agent构建平台，提供在线可配置的Agent，MCP服
 | ![Demo](./.github/imgs/login.png) | ![Demo](./.github/imgs/main.png) |
 | ![Demo](./.github/imgs/agent.png) | ![Demo](./.github/imgs/mcp.png) |
 
-## 💡 功能描述
+## 💡 Features
 
-`1` 可配置Agent
-   - 您只需要为Agent配置一个llm_url和api_key，和一段详细的描述
-   - 可以为您的Agent绑定一个MCP服务
+1 Configurable Agents
+   • You only need to configure an llm_url, api_key, and a detailed description for your Agent.
 
-`2` 可配置MCP服务
-   - 您只需要新建一个MCP服务，即可在下面以HTTP请求接口的形式配置MCP工具
-   - 创建完成后，即可在Agent中绑定该MCP服务
+   • You can bind an MCP service to your Agent.
 
-`3` 时序分析功能
-   - 您只需要上传带头的CSV文件，给一段你想要的描述，即可进行预测和分析
-   - 他会返回预测的数据和图片
+2 Configurable MCP Services
+   • You just need to create a new MCP service and configure MCP tools in the form of HTTP request interfaces.
 
-## 💡 一些好用的工具（持续优化中）
+   • Once created, you can bind the MCP service to your Agent.
 
-`1` 基于A2A协议的单端口可配置多Agent服务
-   - [a2a_server](https://github.com/C2SAgent/c2sagent/blob/main/src_a2a/a2a_server/__init__.py) 扩展了A2A协议的功能，如果您需要，可以修改后用于你的项目
-   - 您可以用它实现一个端口建设多个A2A服务，只需要传递一个agent_index。
+## 💡 Some Solutions (Continuously Optimizing)
 
-`2` 基于MCP协议的单端口可配置多MCP服务
-   - [mcp_server](https://github.com/C2SAgent/c2sagent/blob/main/src_mcp/mcp_server/server/mcp_server.py) 扩展了MCP协议的功能，如果您需要，可以修改后用于你的项目
-   - 您可以用它实现一个端口建设多个MCP服务，只需要传递一个mcp_server_id。
+1 Single-Port Multi-Agent Service Based on A2A Protocol
+   • https://github.com/C2SAgent/c2sagent/blob/main/src_a2a/a2a_server/__init__.py extends the functionality of the A2A protocol. If needed, you can modify it for your project.
 
+   • You can use it to implement multiple A2A services on a single port by simply passing an agent_index.
 
-## 👨‍💻 开发
+2 Single-Port HTTP Multi-MCP Service Based on MCP Protocol
+   • https://github.com/C2SAgent/c2sagent/blob/main/src_mcp/mcp_server/server/mcp_server.py extends the functionality of the MCP protocol. If needed, you can modify it for your project.
 
-项目基础技术栈：Python + MongoDB + PostgreSQL
-AI技术栈：A2A + MCP
+   • You can use it to implement multiple MCP services on a single port by simply passing an mcp_server_id to access the service.
 
-- **⚡ 快速部署**
+## 👨💻 Development
 
-  > 使用 Docker-compose 快速启动后端项目
-  ```bash
+Core Tech Stack: Python + MongoDB + PostgreSQL
+AI Tech Stack: A2A + MCP
+
+- **⚡ Quick Deployment**
+
+  > Use Docker-compose to quickly launch the backend project:
   git clone https://github.com/C2SAgent/c2sagent.git
   cd c2sagent/docker
   docker-compose up --build -d
-  ```
 
-  > 使用 Docker-compose 快速启动前端项目
-  ```bash
+
+  > Use Docker-compose to quickly launch the frontend project:
   cd vue-frontend
   docker-compose up -d
-  ```
 
-  > 在启动前端项目时，需要在nginx.conf文件中添加你的域名，或者改为你的本机地址
 
-- **🚀 快速开发**
+  > When launching the frontend project, you need to add your domain or local address to the nginx.conf file.
 
-  > 启动后端项目
-  ```bash
+- **🚀 Quick Development**
+
+  > Install PostgreSQL
+
+  > Install MongoDB
+
+  > Launch the backend project:
   git clone https://github.com/C2SAgent/c2sagent.git
   uv venv .venv
   uv sync
   ./start_service.sh start
-  ```
-  > 启动前端项目
-  ```bash
+
+
+  > Launch the frontend project:
   cd vue-frontend
   npm install
   npm run dev
-  ```
-
-## 🏘️ 加入我们
-
-我们正在寻找志同道合的小伙伴，加速 C2S Agent 的发展。
-联系邮箱：chen_zailong@qq.com
 
 
-## 🤝 参与贡献
+## 🏘️ Join Us
 
-我们非常欢迎各种形式的贡献。如果你对贡献代码感兴趣，可以查看我们的 GitHub [Issues](https://github.com/C2SAgent/c2sagent/issues)。
+We are looking for like-minded collaborators to accelerate the development of C2S Agent.
+Contact email: chen_zailong@qq.com
 
-## 使用协议
+## 🤝 Contribute
 
-本仓库完全开源，用于学习交流，商用存在风险
+We welcome contributions in all forms. If you're interested in contributing code, check out our GitHub https://github.com/C2SAgent/c2sagent/issues.
