@@ -123,6 +123,7 @@ class ChatSession:
         # 异步查询AgentCard
         agent_find = await db.fetch_one(AgentCard, id=agent_id)
         logging.info(f"Agent config: {agent_find.llm_url}, {agent_find.llm_key}")
+        llm_name = agent_find.llm_name
         self.llm_client.llm_url = agent_find.llm_url
         self.llm_client.api_key = agent_find.llm_key
 
@@ -220,7 +221,7 @@ class ChatSession:
                 messages,
                 self.llm_client.llm_url,
                 self.llm_client.api_key,
-                model_name="deepseek-reasoner",
+                model_name="deepseek-reasoner" if llm_name == "deepseek" else llm_name,
             ):
                 if chunk["type"] == "text":
                     llm_response += chunk["content"]

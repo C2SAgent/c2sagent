@@ -2,6 +2,8 @@
   "common": {
     "login": "Login",
     "loggingIn": "Logging in...",
+    "register": "Register",
+    "registering": "Registering...",
     "retry": "Retry",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -15,6 +17,15 @@
     "demoAccount": "Account: agent Password: agent",
     "autoFill": "Auto fill",
     "noAccount": "No account? Register now"
+  },
+  "register": {
+    "username": "Username",
+    "password": "Password",
+    "coreLLMName": "Core LLM Name",
+    "coreLLMUrl": "Core LLM URL",
+    "coreLLMKey": "Core LLM Key",
+    "haveAccount": "Already have an account? Login",
+    "selectLLM": "Select LLM"
   },
   "components": {
     "sidebar": {

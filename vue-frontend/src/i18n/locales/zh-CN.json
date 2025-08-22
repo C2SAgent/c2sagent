@@ -2,6 +2,8 @@
   "common": {
     "login": "登录",
     "loggingIn": "登录中...",
+    "register": "注册",
+    "registering": "注册中...",
     "retry": "重试",
     "cancel": "取消",
     "delete": "删除",
@@ -15,6 +17,15 @@
     "demoAccount": "体验账号: agent 体验密码: agent",
     "autoFill": "一键填入",
     "noAccount": "没有账号？立即注册"
+  },
+  "register": {
+    "username": "用户名",
+    "password": "密码",
+    "coreLLMName": "核心LLM名称",
+    "coreLLMUrl": "核心LLM地址",
+    "coreLLMKey": "核心LLM密钥",
+    "haveAccount": "已有账号？立即登录",
+    "selectLLM": "选择LLM"
   },
   "components": {
     "sidebar": {

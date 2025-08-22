@@ -230,6 +230,7 @@ class Agent:
             str or Generator[str]: The LLM response as a string or generator, depending on mode.
         """  # noqa: E501
         user_find = db.fetch_one(UserConfig, id=self.user_id)
+        core_llm_name = user_find.core_llm_name
         core_llm_url = user_find.core_llm_url
         core_llm_key = user_find.core_llm_key
         llm_client = LLMClient()
@@ -238,7 +239,9 @@ class Agent:
             messages=prompt,
             llm_url=core_llm_url,
             api_key=core_llm_key,
-            model_name="deepseek-reasoner",
+            model_name="deepseek-reasoner"
+            if core_llm_name == "deepseek"
+            else core_llm_name,
         ):
             yield result
 

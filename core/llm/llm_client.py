@@ -31,6 +31,7 @@ class LLMClient:
         llm_url=None,
         api_key=None,
         model_name="deepseek-chat",
+        **params,
     ) -> AsyncGenerator[str, None]:
         if llm_url and api_key:
             self.llm_url = llm_url
@@ -40,7 +41,7 @@ class LLMClient:
         )
 
         response = await client.chat.completions.create(
-            messages=messages, stream=True, model=model_name
+            messages=messages, stream=True, model=model_name, **params
         )
         async for chunk in response:
             delta = chunk.choices[0].delta
@@ -93,7 +94,7 @@ class LLMClient:
         yield result
 
     async def get_response_chat(
-        self, messages: list[dict[str, str]], llm_url=None, api_key=None
+        self, messages: list[dict[str, str]], llm_name, llm_url=None, api_key=None
     ):
         if llm_url and api_key:
             self.llm_url = llm_url
@@ -101,6 +102,6 @@ class LLMClient:
         client: AsyncOpenAI = AsyncOpenAI(api_key=self.api_key, base_url=self.llm_url)
 
         response = await client.chat.completions.create(
-            messages=messages, stream=False, model="deepseek-chat"
+            messages=messages, stream=False, model=llm_name
         )
         return response.choices[0].message.content
