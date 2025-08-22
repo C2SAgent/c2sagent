@@ -151,6 +151,7 @@ async def stream_ask_a2a(
 
     mongo = MongoDBManager()
     user_find = await db.fetch_one(UserConfig, id=current_user.id)
+    core_llm_name = user_find.core_llm_name
     core_llm_url = user_find.core_llm_url
     core_llm_key = user_find.core_llm_key
     llm_client = LLMClient(core_llm_url, core_llm_key)
@@ -213,6 +214,7 @@ async def stream_ask_a2a(
                     session_id,
                     mongo,
                     llm_client,
+                    core_llm_name,
                     core_llm_url,
                     core_llm_key,
                 ):
@@ -224,6 +226,7 @@ async def stream_ask_a2a(
                     current_user.id,
                     session_id,
                     llm_client,
+                    core_llm_name,
                     core_llm_url,
                     core_llm_key,
                 ):
@@ -235,6 +238,7 @@ async def stream_ask_a2a(
                     current_user.id,
                     session_id,
                     llm_client,
+                    core_llm_name,
                     core_llm_url,
                     core_llm_key,
                 ):

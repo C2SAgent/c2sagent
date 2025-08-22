@@ -201,6 +201,7 @@ class App_A2A:
         current_user_id: str,
         session_id: int,
         llm_client: LLMClient,
+        llm_name: str,
         llm_url: str,
         llm_key: str,
         mongo: MongoDBManager,
@@ -215,7 +216,7 @@ class App_A2A:
 
             # 2. 生成摘要
             abstract_title = await App_A2A.do_abstract(
-                messages, llm_client, llm_url, llm_key
+                messages, llm_client, llm_name, llm_url, llm_key
             )
 
             # 3. 更新标题
@@ -230,6 +231,7 @@ class App_A2A:
     async def do_abstract(
         messages: str,
         llm_client: LLMClient,
+        llm_name: str,
         llm_url: str,
         llm_key: str,
     ):
@@ -240,7 +242,10 @@ class App_A2A:
             }
         ]
         abstract_title = await llm_client.get_response_chat(
-            prompt_list, llm_url, llm_key
+            prompt_list,
+            "deepseek-chat" if llm_name == "deepseek" else llm_name,
+            llm_url,
+            llm_key,
         )
         return abstract_title
 
@@ -253,6 +258,7 @@ class App_A2A:
         session_id: str,
         mongo: MongoDBManager,
         llm_client: LLMClient,
+        llm_name: str,
         llm_url: str,
         llm_key: str,
     ) -> AsyncGenerator[str, None]:
@@ -313,7 +319,13 @@ class App_A2A:
 
         asyncio.create_task(
             App_A2A.update_session_title(
-                current_user_id, session_id, llm_client, llm_url, llm_key, mongo
+                current_user_id,
+                session_id,
+                llm_client,
+                llm_name,
+                llm_url,
+                llm_key,
+                mongo,
             )
         )
 
@@ -323,6 +335,7 @@ class App_A2A:
         current_user_id: int,
         session_id: str,
         llm_client: LLMClient,
+        core_llm_name: str,
         core_llm_url: str,
         core_llm_key: str,
     ) -> AsyncGenerator[str, None]:
@@ -352,7 +365,9 @@ class App_A2A:
             question_message,
             llm_url=core_llm_url,
             api_key=core_llm_key,
-            model_name="deepseek-reasoner",
+            model_name="deepseek-reasoner"
+            if core_llm_name == "deepseek"
+            else core_llm_name,
         ):
             if result["type"] == "thought":
                 message_thought += result["content"]
@@ -387,6 +402,7 @@ class App_A2A:
                 current_user_id,
                 session_id,
                 llm_client,
+                core_llm_name,
                 core_llm_url,
                 core_llm_key,
                 mongo,
@@ -399,6 +415,7 @@ class App_A2A:
         current_user_id: str,
         session_id: str,
         llm_client: LLMClient,
+        core_llm_name: str,
         core_llm_url: str,
         core_llm_key: str,
     ) -> AsyncGenerator[str, None]:
@@ -420,9 +437,17 @@ class App_A2A:
         messages = await mongo.get_session_by_ids(str(current_user_id), session_id)
         message_text = ""
 
+        params = {"extra_body": {"thinking": {"type": "disabled"}}}
+
         # 流式获取LLM响应
-        async for chunk in llm_client.get_stream_response_chat(
-            messages["messages"], llm_url=core_llm_url, api_key=core_llm_key
+        async for chunk in llm_client.get_stream_response_reasion_and_content(
+            messages["messages"],
+            llm_url=core_llm_url,
+            api_key=core_llm_key,
+            model_name="deepseek-chat"
+            if core_llm_name == "deepseek"
+            else core_llm_name,
+            **params if core_llm_name == "doubao-seed-1-6" else {},
         ):
             message_text += chunk["content"]
             yield json.dumps({"event": "text", "data": chunk["content"]}) + "\n\n"
@@ -443,6 +468,7 @@ class App_A2A:
                 current_user_id,
                 session_id,
                 llm_client,
+                core_llm_name,
                 core_llm_url,
                 core_llm_key,
                 mongo,
