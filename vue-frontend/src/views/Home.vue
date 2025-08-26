@@ -213,7 +213,7 @@ const sendMessage = async (sessionId: string, content: string) => {
       clearTimeout(updateTitleTimer);
     }
 
-    // 设置新的计时器，6秒后更新标题
+    // 设置新的计时器，10秒后更新标题
     updateTitleTimer = setTimeout(async () => {
       try {
         const freshData = await HistoryApi.load(sessionId);
@@ -225,7 +225,7 @@ const sendMessage = async (sessionId: string, content: string) => {
       } catch (error) {
         console.error(t('errors.updateTitleFailed'), error);
       }
-    }, 5000) as unknown as number;
+    }, 10000) as unknown as number;
   }
 };
 
