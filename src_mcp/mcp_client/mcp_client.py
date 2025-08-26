@@ -221,7 +221,7 @@ class ChatSession:
                 messages,
                 self.llm_client.llm_url,
                 self.llm_client.api_key,
-                model_name="deepseek-reasoner" if llm_name == "deepseek" else llm_name,
+                model_name="deepseek-chat" if llm_name == "deepseek" else llm_name,
             ):
                 if chunk["type"] == "text":
                     llm_response += chunk["content"]

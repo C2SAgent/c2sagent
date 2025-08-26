@@ -165,56 +165,60 @@ class Agent:
         """  # noqa: E501
 
         agent_answers: list[dict] = []
+        for _ in range(3):
+            agents_registry, agent_prompt = await self.get_agents()
 
-        agents_registry, agent_prompt = await self.get_agents()
+            response = ""
+            thought_response = ""
 
-        response = ""
-        thought_response = ""
+            async for chunk in self.decide_streaming(
+                question, agent_prompt, agent_answers
+            ):
+                print(chunk)
 
-        async for chunk in self.decide_streaming(question, agent_prompt, agent_answers):
-            print(chunk)
-
-            if chunk["type"] == "thought":
-                thought_response += chunk["content"]
-                yield chunk
-                continue
-            else:
-                response += chunk["content"]
-
-            if "</" in response:
-                continue
-            elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
-                yield {"type": "thought", "content": chunk["content"]}
-
-        yield {"type": "end", "content": "\n"}
-        agents = self.extract_agents(response if response != "" else thought_response)
-
-        if agents:
-            for agent in agents:
-                agent_card = agents_registry[agent["name"]]
-                agent_response = ""
-                async for chunk in self.send_message_to_an_agent_streaming(
-                    agent_card, agent["prompt"]
-                ):
-                    agent_response += chunk["content"]
-                    # TODO: 增加状态审核
-                    # yield {"type": "text", "content": chunk}
-                    print("=======================agent思考")
-                    print(chunk)
+                if chunk["type"] == "thought":
+                    thought_response += chunk["content"]
                     yield chunk
-                yield {"type": "end", "content": ""}
+                    continue
+                else:
+                    response += chunk["content"]
 
-                # agent_response = await self.send_message_to_an_agent(
-                #     agent_card, agent["prompt"]
-                # )
+                if "</" in response:
+                    continue
+                elif "<Thoughts>" in response and not response.endswith("<Thoughts>\n"):
+                    yield {"type": "thought", "content": chunk["content"]}
 
-                agent_answers.append(
-                    {
-                        "name": agent["name"],
-                        "prompt": agent["prompt"],
-                        "answer": agent_response,
-                    }
-                )
+            yield {"type": "end", "content": "\n"}
+            agents = self.extract_agents(
+                response if response != "" else thought_response
+            )
+
+            if agents:
+                for agent in agents:
+                    agent_card = agents_registry[agent["name"]]
+                    agent_response = ""
+                    async for chunk in self.send_message_to_an_agent_streaming(
+                        agent_card, agent["prompt"]
+                    ):
+                        agent_response += chunk["content"]
+                        # TODO: 增加状态审核
+                        # yield {"type": "text", "content": chunk}
+                        print("=======================agent思考")
+                        print(chunk)
+                        yield chunk
+                    yield {"type": "end", "content": ""}
+
+                    # agent_response = await self.send_message_to_an_agent(
+                    #     agent_card, agent["prompt"]
+                    # )
+
+                    agent_answers.append(
+                        {
+                            "name": agent["name"],
+                            "prompt": agent["prompt"],
+                            "answer": agent_response,
+                        }
+                    )
             # yield {"type": "text", "content": agent_answers}
         else:
             yield {"type": "text", "content": self.extract_response(response)}
@@ -239,7 +243,7 @@ class Agent:
             messages=prompt,
             llm_url=core_llm_url,
             api_key=core_llm_key,
-            model_name="deepseek-reasoner"
+            model_name="deepseek-chat"
             if core_llm_name == "deepseek"
             else core_llm_name,
         ):
