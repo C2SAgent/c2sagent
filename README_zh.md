@@ -67,6 +67,8 @@ AI技术栈：A2A + MCP
 
   > 安装mongodb
 
+  > 配置你的.env文件
+
   > 启动后端项目
   ```bash
   git clone https://github.com/C2SAgent/c2sagent.git

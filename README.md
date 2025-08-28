@@ -51,14 +51,18 @@ AI Tech Stack: A2A + MCP
 - **⚡ Quick Deployment**
 
   > Use Docker-compose to quickly launch the backend project:
+  ```bash
   git clone https://github.com/C2SAgent/c2sagent.git
   cd c2sagent/docker
   docker-compose up --build -d
+  ```
 
 
   > Use Docker-compose to quickly launch the frontend project:
+  ```bash
   cd vue-frontend
   docker-compose up -d
+  ```
 
 
   > When launching the frontend project, you need to add your domain or local address to the nginx.conf file.
@@ -69,18 +73,22 @@ AI Tech Stack: A2A + MCP
 
   > Install MongoDB
 
+  > Configure your .env
+
   > Launch the backend project:
+  ```bash
   git clone https://github.com/C2SAgent/c2sagent.git
   uv venv .venv
   uv sync
   ./start_service.sh start
-
+  ```
 
   > Launch the frontend project:
+  ```bash
   cd vue-frontend
   npm install
   npm run dev
-
+  ```
 
 ## 🏘️ Join Us
 
