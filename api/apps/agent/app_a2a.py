@@ -137,10 +137,11 @@ async def stream_ask_a2a(
     files: UploadFile = File(None),
     current_user: models.UserConfig = Depends(auth.get_current_active_user),
 ):
-    oss = OSSManager()
-    input_data_url = None
+
 
     if files and files.content_type == CSV_CONTENT_TYPE:
+        oss = OSSManager()
+        input_data_url = None
         temp_content = await files.read()
         object_name = f"{FORECAST_PATH_PREFIX}/{session_id}/{datetime.now().isoformat()}_{uuid.uuid4()}.csv"
         input_data_url = oss.upload_object(
@@ -206,6 +207,20 @@ async def stream_ask_a2a(
                     yield json.dumps({"event": "error", "data": str(e)}) + "\n\n"
 
             elif isAgent:
+                agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
+                if not agent_finds:
+                    raise HTTPException(
+                        status_code=404, detail="Agent not found for this user"
+                    )
+                agent = Agent(
+                    mode="complete",
+                    token_stream_callback=None,
+                    agent_urls=[
+                        f"http://localhost:10001/a2a/{agent_find.id}"
+                        for agent_find in agent_finds
+                    ],
+                    user_id=current_user.id,
+                )
                 async for result in App_A2A.do_multi_agent(
                     agent,
                     messages,
