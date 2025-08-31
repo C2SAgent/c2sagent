@@ -242,7 +242,7 @@ class ChatSession:
             messages.append({"role": "assistant", "content": llm_response})
             messages.append({"role": "user", "content": result})
 
-        yield {"is_task_complete": True, "require_user_input": False, "content": result}
+        yield {"is_task_complete": False, "require_user_input": False, "content": result}
 
 
 def parse_mcp_client(config: dict[str, any]):

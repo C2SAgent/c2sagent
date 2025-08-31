@@ -3,9 +3,12 @@
 # 多服务启动脚本
 # 用法: ./start_services.sh [start|stop|restart|status]
 
+# 获取当前脚本所在目录，并解析为绝对路径
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+APP_DIR="$SCRIPT_DIR"  # 脚本所在目录即为应用目录
+
 # 服务配置
 APP_NAME="C2SAgent"
-APP_DIR="/root/ChenXAn/project_c2sagent/c2sagent/"  # 修改为你的应用目录
 VENV_PATH="$APP_DIR/.venv/bin/activate"  # 修改为你的虚拟环境路径
 
 # PID文件位置
@@ -21,14 +24,9 @@ chown -R $USER:$USER $LOG_DIR
 chmod -R 755 $LOG_DIR
 
 # PID文件位置
-PID_DIR="/var/run/$APP_NAME"
 mkdir -p $PID_DIR
 chown -R $USER:$USER $PID_DIR
 chmod -R 755 $PID_DIR
-
-FASTAPI_PID="$PID_DIR/fastapi.pid"
-A2A_PID="$PID_DIR/a2a.pid"
-MCP_PID="$PID_DIR/mcp.pid"
 
 # 日志文件位置
 FASTAPI_LOG="$LOG_DIR/fastapi.log"
@@ -70,10 +68,24 @@ start_a2a() {
     echo "Starting A2A service..."
     cd $APP_DIR
     source $VENV_PATH
-    nohup python -c "from src_a2a.a2a_server import main; main()" > $A2A_LOG 2>&1 &
+    
+    # 设置worker数量（CPU核心数×2）
+    WORKERS=$(($(nproc) * 2))
+    
+    # 使用模块路径格式：package.module:app
+    nohup uvicorn src_a2a.a2a_server:app \
+        --host 0.0.0.0 \
+        --port 10001 \
+        --workers $WORKERS \
+        --loop uvloop \
+        --http httptools \
+        --timeout-keep-alive 60 \
+        > $A2A_LOG 2>&1 &
+    
     echo $! > $A2A_PID
-    echo "A2A service started"
+    echo "A2A service started with $WORKERS workers"
 }
+
 
 # 启动MCP服务
 start_mcp() {

@@ -70,6 +70,8 @@ dependencies = [
     "black>=25.1.0",
     "aiofiles>=24.1.0",
     "volcengine-python-sdk==4.0.9",
+    "uvloop>=0.21.0",
+    "httptools>=0.6.4",
 ]
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"

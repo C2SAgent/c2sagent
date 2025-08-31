@@ -37,7 +37,7 @@ services:
       - postgres_data:/data/postgres_data
       - ./postgresql-init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5433:5432"
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

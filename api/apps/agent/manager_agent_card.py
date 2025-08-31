@@ -47,20 +47,36 @@ async def do_agent_create(
 ):
     """异步创建Agent"""
     try:
-        await db.insert(
-            models.AgentCard,
-            {
-                "name": name,
-                "description": description,
-                "version": version,
-                "streaming": streaming,
-                "examples": examples,
-                "user_id": current_user.id,
-                "llm_name": llm_name,
-                "llm_url": llm_url,
-                "llm_key": llm_key,
-            },
-        )
+        if not llm_name or not llm_url or not llm_key:
+            await db.insert(
+                models.AgentCard,
+                {
+                    "name": name,
+                    "description": description,
+                    "version": version,
+                    "streaming": True,
+                    "examples": examples,
+                    "user_id": current_user.id,
+                    "llm_name": current_user.core_llm_name,
+                    "llm_url": current_user.core_llm_url,
+                    "llm_key": current_user.core_llm_key,
+                },
+            )
+        else:
+            await db.insert(
+                models.AgentCard,
+                {
+                    "name": name,
+                    "description": description,
+                    "version": version,
+                    "streaming": True,
+                    "examples": examples,
+                    "user_id": current_user.id,
+                    "llm_name": llm_name,
+                    "llm_url": llm_url,
+                    "llm_key": llm_key,
+                },
+            )
         logger.info(f"User {current_user.id} created agent: {name}")
         return BaseResponse()
     except Exception as e:
@@ -166,7 +182,7 @@ async def do_agent_discorr_mcp(
         )
         if not relation:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=Status.HTTP_404_NOT_FOUND,
                 detail="No such correlation exists",
             )
 
@@ -218,6 +234,6 @@ async def do_find_mcp(
     except Exception as e:
         logger.error(f"Failed to find MCP: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to find MCP server",
         )

@@ -50,6 +50,14 @@ class CoreAgentExecutor(AgentExecutor):
     ) -> None:
 
         if not self.agent_find:
+            task = context.current_task
+
+            if not context.message:
+                raise Exception("No message provided")
+
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
             await event_queue.enqueue_event(
                 TaskStatusUpdateEvent(
                     status=TaskStatus(
@@ -65,61 +73,33 @@ class CoreAgentExecutor(AgentExecutor):
                     taskId=task.id,
                 )
             )
+        elif not self.mcp_server_id:
+            task = context.current_task
+            query = context.get_user_input()
 
-        self.agent = Agent(
-            mode="complete",
-            token_stream_callback=print,
-            mcp_url=f"http://localhost:8000/app_mcp/ask_mcp_streaming",
-            agent_index=self.agent_index,
-            mcp_server_id=self.mcp_server_id,
-        )
-        query = context.get_user_input()
-        task = context.current_task
+            if not context.message:
+                raise Exception("No message provided")
 
-        if not context.message:
-            raise Exception("No message provided")
-
-        if not task:
-            task = new_task(context.message)
-            await event_queue.enqueue_event(task)
-
-        async for event in self.agent.stream(query):
-            if event["is_task_complete"]:
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
+                
+            
+            print("Agent================================")
+            print(self.agent_find.llm_name)
+            print(self.agent_find.llm_url)
+            print(self.agent_find.llm_key)
+            llm_client = LLMClient()
+            async for event in llm_client.get_stream_response_reasion_and_content(
+                messages=[{"role": "system", "content": f"这是对你的描述：\n\n{self.agent_find.description}"}, {"role": "user", "content": query}],
+                llm_url=self.agent_find.llm_url,
+                api_key=self.agent_find.llm_key,
+                model_name="deepseek-reasoner"
+                if self.agent_find.llm_name == "deepseek"
+                else self.agent_find.llm_name,
+            ):
                 await event_queue.enqueue_event(
                     TaskStatusUpdateEvent(
-                        status=TaskStatus(
-                            state=TaskState.completed,
-                            message=new_agent_text_message(
-                                event["content"],
-                                task.contextId,
-                                task.id,
-                            ),
-                        ),
-                        final=True,
-                        contextId=task.contextId,
-                        taskId=task.id,
-                    )
-                )
-            elif event["require_user_input"]:
-                await event_queue.enqueue_event(
-                    TaskStatusUpdateEvent(
-                        status=TaskStatus(
-                            state=TaskState.input_required,
-                            message=new_agent_text_message(
-                                event["content"],
-                                task.contextId,
-                                task.id,
-                            ),
-                        ),
-                        final=True,
-                        contextId=task.contextId,
-                        taskId=task.id,
-                    )
-                )
-            else:
-                await event_queue.enqueue_event(
-                    TaskStatusUpdateEvent(
-                        append=True,
                         status=TaskStatus(
                             state=TaskState.working,
                             message=new_agent_text_message(
@@ -132,7 +112,75 @@ class CoreAgentExecutor(AgentExecutor):
                         contextId=task.contextId,
                         taskId=task.id,
                     )
-                )
+            )            
+        else:
+            self.agent = Agent(
+                mode="complete",
+                token_stream_callback=print,
+                mcp_url=f"http://localhost:8000/app_mcp/ask_mcp_streaming",
+                agent_index=self.agent_index,
+                mcp_server_id=self.mcp_server_id,
+            )
+            query = context.get_user_input()
+            task = context.current_task
+
+            if not context.message:
+                raise Exception("No message provided")
+
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
+
+            async for event in self.agent.stream(query):
+                if event["is_task_complete"]:
+                    await event_queue.enqueue_event(
+                        TaskStatusUpdateEvent(
+                            status=TaskStatus(
+                                state=TaskState.completed,
+                                message=new_agent_text_message(
+                                    event["content"],
+                                    task.contextId,
+                                    task.id,
+                                ),
+                            ),
+                            final=True,
+                            contextId=task.contextId,
+                            taskId=task.id,
+                        )
+                    )
+                elif event["require_user_input"]:
+                    await event_queue.enqueue_event(
+                        TaskStatusUpdateEvent(
+                            status=TaskStatus(
+                                state=TaskState.input_required,
+                                message=new_agent_text_message(
+                                    event["content"],
+                                    task.contextId,
+                                    task.id,
+                                ),
+                            ),
+                            final=True,
+                            contextId=task.contextId,
+                            taskId=task.id,
+                        )
+                    )
+                else:
+                    await event_queue.enqueue_event(
+                        TaskStatusUpdateEvent(
+                            append=True,
+                            status=TaskStatus(
+                                state=TaskState.working,
+                                message=new_agent_text_message(
+                                    event["content"],
+                                    task.contextId,
+                                    task.id,
+                                ),
+                            ),
+                            final=False,
+                            contextId=task.contextId,
+                            taskId=task.id,
+                        )
+                    )
 
     @override
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:

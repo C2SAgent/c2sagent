@@ -208,10 +208,6 @@ class Agent:
                         yield chunk
                     yield {"type": "end", "content": ""}
 
-                    # agent_response = await self.send_message_to_an_agent(
-                    #     agent_card, agent["prompt"]
-                    # )
-
                     agent_answers.append(
                         {
                             "name": agent["name"],
@@ -219,10 +215,10 @@ class Agent:
                             "answer": agent_response,
                         }
                     )
-            # yield {"type": "text", "content": agent_answers}
-        else:
-            yield {"type": "text", "content": self.extract_response(response)}
-            yield {"type": "end", "content": ""}
+            else:
+                break
+        yield {"type": "text", "content": self.extract_response(response)}
+        yield {"type": "end", "content": ""}
 
     async def call_llm_streaming(self, prompt: str) -> AsyncGenerator[str, None]:
         """Call the LLM with the given prompt and return the response as a string or generator.

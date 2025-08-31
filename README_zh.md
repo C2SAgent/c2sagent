@@ -71,6 +71,8 @@ AI技术栈：A2A + MCP
 
   > 启动后端项目
   ```bash
+  sudo apt update
+  sudo apt-get install python3-dev python3-pip gcc libpq-dev
   git clone https://github.com/C2SAgent/c2sagent.git
   uv venv .venv
   uv sync
