@@ -75,6 +75,7 @@ class CoreAgentExecutor(AgentExecutor):
             )
         elif not self.mcp_server_id:
             task = context.current_task
+            query = context.get_user_input()
 
             if not context.message:
                 raise Exception("No message provided")
@@ -82,20 +83,35 @@ class CoreAgentExecutor(AgentExecutor):
             if not task:
                 task = new_task(context.message)
                 await event_queue.enqueue_event(task)
-            await event_queue.enqueue_event(
-                TaskStatusUpdateEvent(
-                    status=TaskStatus(
-                        state=TaskState.working,
-                        message=new_agent_text_message(
-                            "该智能体并未绑定任何MCP，请你自行给用户回答",
-                            task.contextId,
-                            task.id,
+                
+            
+            print("Agent================================")
+            print(self.agent_find.llm_name)
+            print(self.agent_find.llm_url)
+            print(self.agent_find.llm_key)
+            llm_client = LLMClient()
+            async for event in llm_client.get_stream_response_reasion_and_content(
+                messages=[{"role": "system", "content": f"这是对你的描述：\n\n{self.agent_find.description}"}, {"role": "user", "content": query}],
+                llm_url=self.agent_find.llm_url,
+                api_key=self.agent_find.llm_key,
+                model_name="deepseek-reasoner"
+                if self.agent_find.llm_name == "deepseek"
+                else self.agent_find.llm_name,
+            ):
+                await event_queue.enqueue_event(
+                    TaskStatusUpdateEvent(
+                        status=TaskStatus(
+                            state=TaskState.working,
+                            message=new_agent_text_message(
+                                event["content"],
+                                task.contextId,
+                                task.id,
+                            ),
                         ),
-                    ),
-                    final=True,
-                    contextId=task.contextId,
-                    taskId=task.id,
-                )
+                        final=False,
+                        contextId=task.contextId,
+                        taskId=task.id,
+                    )
             )            
         else:
             self.agent = Agent(
