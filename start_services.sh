@@ -68,10 +68,24 @@ start_a2a() {
     echo "Starting A2A service..."
     cd $APP_DIR
     source $VENV_PATH
-    nohup python -c "from src_a2a.a2a_server import main; main()" > $A2A_LOG 2>&1 &
+    
+    # 设置worker数量（CPU核心数×2）
+    WORKERS=$(($(nproc) * 2))
+    
+    # 使用模块路径格式：package.module:app
+    nohup uvicorn src_a2a.a2a_server:app \
+        --host 0.0.0.0 \
+        --port 10001 \
+        --workers $WORKERS \
+        --loop uvloop \
+        --http httptools \
+        --timeout-keep-alive 60 \
+        > $A2A_LOG 2>&1 &
+    
     echo $! > $A2A_PID
-    echo "A2A service started"
+    echo "A2A service started with $WORKERS workers"
 }
+
 
 # 启动MCP服务
 start_mcp() {

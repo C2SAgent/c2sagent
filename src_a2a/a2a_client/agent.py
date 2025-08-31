@@ -220,9 +220,10 @@ class Agent:
                         }
                     )
             # yield {"type": "text", "content": agent_answers}
-        else:
-            yield {"type": "text", "content": self.extract_response(response)}
-            yield {"type": "end", "content": ""}
+            else:
+                yield {"type": "text", "content": self.extract_response(response)}
+                yield {"type": "end", "content": ""}
+                break
 
     async def call_llm_streaming(self, prompt: str) -> AsyncGenerator[str, None]:
         """Call the LLM with the given prompt and return the response as a string or generator.

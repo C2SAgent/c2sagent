@@ -50,6 +50,14 @@ class CoreAgentExecutor(AgentExecutor):
     ) -> None:
 
         if not self.agent_find:
+            task = context.current_task
+
+            if not context.message:
+                raise Exception("No message provided")
+
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
             await event_queue.enqueue_event(
                 TaskStatusUpdateEvent(
                     status=TaskStatus(
@@ -65,74 +73,98 @@ class CoreAgentExecutor(AgentExecutor):
                     taskId=task.id,
                 )
             )
+        elif not self.mcp_server_id:
+            task = context.current_task
 
-        self.agent = Agent(
-            mode="complete",
-            token_stream_callback=print,
-            mcp_url=f"http://localhost:8000/app_mcp/ask_mcp_streaming",
-            agent_index=self.agent_index,
-            mcp_server_id=self.mcp_server_id,
-        )
-        query = context.get_user_input()
-        task = context.current_task
+            if not context.message:
+                raise Exception("No message provided")
 
-        if not context.message:
-            raise Exception("No message provided")
-
-        if not task:
-            task = new_task(context.message)
-            await event_queue.enqueue_event(task)
-
-        async for event in self.agent.stream(query):
-            if event["is_task_complete"]:
-                await event_queue.enqueue_event(
-                    TaskStatusUpdateEvent(
-                        status=TaskStatus(
-                            state=TaskState.completed,
-                            message=new_agent_text_message(
-                                event["content"],
-                                task.contextId,
-                                task.id,
-                            ),
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    status=TaskStatus(
+                        state=TaskState.working,
+                        message=new_agent_text_message(
+                            "该智能体并未绑定任何MCP，请你自行给用户回答",
+                            task.contextId,
+                            task.id,
                         ),
-                        final=True,
-                        contextId=task.contextId,
-                        taskId=task.id,
-                    )
+                    ),
+                    final=True,
+                    contextId=task.contextId,
+                    taskId=task.id,
                 )
-            elif event["require_user_input"]:
-                await event_queue.enqueue_event(
-                    TaskStatusUpdateEvent(
-                        status=TaskStatus(
-                            state=TaskState.input_required,
-                            message=new_agent_text_message(
-                                event["content"],
-                                task.contextId,
-                                task.id,
+            )            
+        else:
+            self.agent = Agent(
+                mode="complete",
+                token_stream_callback=print,
+                mcp_url=f"http://localhost:8000/app_mcp/ask_mcp_streaming",
+                agent_index=self.agent_index,
+                mcp_server_id=self.mcp_server_id,
+            )
+            query = context.get_user_input()
+            task = context.current_task
+
+            if not context.message:
+                raise Exception("No message provided")
+
+            if not task:
+                task = new_task(context.message)
+                await event_queue.enqueue_event(task)
+
+            async for event in self.agent.stream(query):
+                if event["is_task_complete"]:
+                    await event_queue.enqueue_event(
+                        TaskStatusUpdateEvent(
+                            status=TaskStatus(
+                                state=TaskState.completed,
+                                message=new_agent_text_message(
+                                    event["content"],
+                                    task.contextId,
+                                    task.id,
+                                ),
                             ),
-                        ),
-                        final=True,
-                        contextId=task.contextId,
-                        taskId=task.id,
+                            final=True,
+                            contextId=task.contextId,
+                            taskId=task.id,
+                        )
                     )
-                )
-            else:
-                await event_queue.enqueue_event(
-                    TaskStatusUpdateEvent(
-                        append=True,
-                        status=TaskStatus(
-                            state=TaskState.working,
-                            message=new_agent_text_message(
-                                event["content"],
-                                task.contextId,
-                                task.id,
+                elif event["require_user_input"]:
+                    await event_queue.enqueue_event(
+                        TaskStatusUpdateEvent(
+                            status=TaskStatus(
+                                state=TaskState.input_required,
+                                message=new_agent_text_message(
+                                    event["content"],
+                                    task.contextId,
+                                    task.id,
+                                ),
                             ),
-                        ),
-                        final=False,
-                        contextId=task.contextId,
-                        taskId=task.id,
+                            final=True,
+                            contextId=task.contextId,
+                            taskId=task.id,
+                        )
                     )
-                )
+                else:
+                    await event_queue.enqueue_event(
+                        TaskStatusUpdateEvent(
+                            append=True,
+                            status=TaskStatus(
+                                state=TaskState.working,
+                                message=new_agent_text_message(
+                                    event["content"],
+                                    task.contextId,
+                                    task.id,
+                                ),
+                            ),
+                            final=False,
+                            contextId=task.contextId,
+                            taskId=task.id,
+                        )
+                    )
 
     @override
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
