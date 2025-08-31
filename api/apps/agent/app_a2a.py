@@ -162,21 +162,6 @@ async def stream_ask_a2a(
         try:
             nonlocal session_id
 
-            agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
-            if not agent_finds:
-                raise HTTPException(
-                    status_code=404, detail="Agent not found for this user"
-                )
-            agent = Agent(
-                mode="complete",
-                token_stream_callback=None,
-                agent_urls=[
-                    f"http://localhost:10001/a2a/{agent_find.id}"
-                    for agent_find in agent_finds
-                ],
-                user_id=current_user.id,
-            )
-
             # History Messages
             messages_find = await mongo.get_session_by_ids(
                 str(current_user.id), session_id
@@ -188,6 +173,20 @@ async def stream_ask_a2a(
             # 时序预测处理
             if isTimeSeries and input_data_url:
                 try:
+                    agent_finds = await db.fetch_all(AgentCard, {"user_id": current_user.id})
+                    if not agent_finds:
+                        raise HTTPException(
+                            status_code=404, detail="Agent not found for this user"
+                        )
+                    agent = Agent(
+                        mode="complete",
+                        token_stream_callback=None,
+                        agent_urls=[
+                            f"http://localhost:10001/a2a/{agent_find.id}"
+                            for agent_find in agent_finds
+                        ],
+                        user_id=current_user.id,
+                    )
                     async for result in App_A2A.do_timeseries_forecast(
                         input_data_url,
                         current_user.id,

@@ -77,6 +77,8 @@ AI Tech Stack: A2A + MCP
 
   > Launch the backend project:
   ```bash
+  sudo apt update
+  sudo apt-get install python3-dev python3-pip gcc libpq-dev
   git clone https://github.com/C2SAgent/c2sagent.git
   uv venv .venv
   uv sync
