@@ -38,6 +38,10 @@ const fillDemoCredentials = () => {
   error.value = '';
 };
 
+const gotoGitHub = () => {
+  window.open('https://github.com/C2SAgent/c2sagent', '_blank');
+};
+
 async function handleSubmit() {
   if (!form.value.username || !form.value.password) {
     error.value = t('errors.required');
@@ -62,11 +66,23 @@ async function handleSubmit() {
 <template>
   <div class="page-container">
     <!-- 语言切换下拉框 -->
-    <div class="language-switcher">
-      <select v-model="locale">
-        <option value="zh-CN">中文</option>
-        <option value="en-US">English</option>
-      </select>
+
+    <div class="top-controls">
+      <div class="github-link" @click="gotoGitHub" title="GitHub Repository - 150 Stars">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        <span class="star-count">
+          <span class="star-number">150</span>
+          <span class="star-text">Stars</span>
+        </span>
+      </div>
+      <div class="language-switcher">
+        <select v-model="locale">
+          <option value="zh-CN">中文</option>
+          <option value="en-US">English</option>
+        </select>
+      </div>
     </div>
 
     <div class="auth-page">
@@ -146,11 +162,48 @@ async function handleSubmit() {
   background-size: cover;
 }
 
-.language-switcher {
+.top-controls {
   position: absolute;
   top: 20px;
   right: 20px;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.github-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.github-link:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+  color: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.star-count {
+  background: linear-gradient(135deg, #ffd700, #ffb347);
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 30px;
+  text-align: center;
 }
 
 .language-switcher select {

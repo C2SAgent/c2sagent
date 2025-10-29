@@ -200,3 +200,5 @@ cache/
 ssl/
 tests/
 enhanced_server_tool_db.json
+
+vue-frontend/nginx.conf
