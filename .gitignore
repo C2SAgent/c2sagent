@@ -202,3 +202,8 @@ tests/
 enhanced_server_tool_db.json
 
 vue-frontend/nginx.conf
+start_services.sh
+vue-frontend/docs/vite.config.js
+vue-frontend/vite.config.js
+vue-frontend/src/api/agent.ts
+vue-frontend/src/api/index.ts
