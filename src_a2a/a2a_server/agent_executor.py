@@ -11,36 +11,37 @@ from typing import Optional, override
 
 from core.llm.llm_client import LLMClient
 from src_a2a.a2a_server.agent import Agent
-from core.db.base_sync import DatabaseManager
+from core.db.base import DatabaseManager
 from model.model_agent import AgentCard, AgentCardAndMcpServer
 
-from api.apps.agent.config import settings
+from core import config as settings
 
-DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
-db = DatabaseManager(DATABASE_SYNC_URL)
+DATABASE_URL = settings.DATABASE_URL
 
 
 class CoreAgentExecutor(AgentExecutor):
-    """Test AgentProxy Implementation."""
+    """Agent executor that resolves agent configuration from the database."""
 
     def __init__(self, agent_index: int = None):
-
-        self.agent_find = None
-        self.mcp_server_find = None
-        self.mcp_server_id = None
-
         self.agent_index = agent_index
+        self._agent_find = None
+        self._mcp_server_find = None
+        self._mcp_server_id = None
+        self._initialized = False
 
-        if self.agent_index != 0:
-            self.agent_find = db.fetch_one(AgentCard, id=self.agent_index)
-
-        if self.agent_find:
-            self.mcp_server_find = db.fetch_one(
-                AgentCardAndMcpServer, agent_card_id=agent_index
-            )
-
-        if self.mcp_server_find:
-            self.mcp_server_id = self.mcp_server_find.mcp_server_id
+    async def _ensure_initialized(self):
+        if self._initialized:
+            return
+        db = DatabaseManager(DATABASE_URL)
+        if self.agent_index and self.agent_index != 0:
+            self._agent_find = await db.fetch_one(AgentCard, id=self.agent_index)
+            if self._agent_find:
+                self._mcp_server_find = await db.fetch_one(
+                    AgentCardAndMcpServer, agent_card_id=self.agent_index
+                )
+                if self._mcp_server_find:
+                    self._mcp_server_id = self._mcp_server_find.mcp_server_id
+        self._initialized = True
 
     @override
     async def execute(
@@ -48,13 +49,12 @@ class CoreAgentExecutor(AgentExecutor):
         context: RequestContext,
         event_queue: EventQueue,
     ) -> None:
+        await self._ensure_initialized()
 
-        if not self.agent_find:
+        if not self._agent_find:
             task = context.current_task
-
             if not context.message:
                 raise Exception("No message provided")
-
             if not task:
                 task = new_task(context.message)
                 await event_queue.enqueue_event(task)
@@ -73,30 +73,26 @@ class CoreAgentExecutor(AgentExecutor):
                     taskId=task.id,
                 )
             )
-        elif not self.mcp_server_id:
+        elif not self._mcp_server_id:
             task = context.current_task
             query = context.get_user_input()
-
             if not context.message:
                 raise Exception("No message provided")
-
             if not task:
                 task = new_task(context.message)
                 await event_queue.enqueue_event(task)
-                
-            
-            print("Agent================================")
-            print(self.agent_find.llm_name)
-            print(self.agent_find.llm_url)
-            print(self.agent_find.llm_key)
+
             llm_client = LLMClient()
             async for event in llm_client.get_stream_response_reasion_and_content(
-                messages=[{"role": "system", "content": f"这是对你的描述：\n\n{self.agent_find.description}"}, {"role": "user", "content": query}],
-                llm_url=self.agent_find.llm_url,
-                api_key=self.agent_find.llm_key,
+                messages=[
+                    {"role": "system", "content": f"这是对你的描述：\n\n{self._agent_find.description}"},
+                    {"role": "user", "content": query},
+                ],
+                llm_url=self._agent_find.llm_url,
+                api_key=self._agent_find.llm_key,
                 model_name="deepseek-reasoner"
-                if self.agent_find.llm_name == "deepseek"
-                else self.agent_find.llm_name,
+                if self._agent_find.llm_name == "deepseek"
+                else self._agent_find.llm_name,
             ):
                 await event_queue.enqueue_event(
                     TaskStatusUpdateEvent(
@@ -112,21 +108,20 @@ class CoreAgentExecutor(AgentExecutor):
                         contextId=task.contextId,
                         taskId=task.id,
                     )
-            )            
+                )
         else:
             self.agent = Agent(
                 mode="complete",
                 token_stream_callback=print,
-                mcp_url=f"http://localhost:8000/app_mcp/ask_mcp_streaming",
+                mcp_url="http://localhost:8000/app_mcp/ask_mcp_streaming",
                 agent_index=self.agent_index,
-                mcp_server_id=self.mcp_server_id,
+                mcp_server_id=self._mcp_server_id,
             )
             query = context.get_user_input()
             task = context.current_task
 
             if not context.message:
                 raise Exception("No message provided")
-
             if not task:
                 task = new_task(context.message)
                 await event_queue.enqueue_event(task)

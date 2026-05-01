@@ -13,18 +13,15 @@ from src_mcp.mcp_server.manager_server_tool import EnhancedServerToolManager
 from .database import engine, get_db
 from sqlalchemy.orm import Session
 
-from api.apps.agent.config import settings
+from core import config as settings
 
 DATABASE_URL = settings.DATABASE_URL
 db = DatabaseManager(DATABASE_URL)
 
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+from api.utils.db_utils import create_init_db
 
-
-app = FastAPI(on_startup=[init_db])
+app = FastAPI(on_startup=[create_init_db(engine, models.Base)])
 
 
 @app.post("/create", response_model=BaseResponse)

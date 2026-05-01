@@ -149,20 +149,15 @@ class EnhancedServerToolManager:
             url = handler["url"]
             method = handler["method"].upper()
 
+            headers = {"Authorization": f"Bearer {handler['key']}"}
             if method == "GET":
-                request_params = {}
-                request_params["key"] = handler["key"]
-                request_params.update(arguments)
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url, params=request_params) as response:
+                    async with session.get(url, params=arguments, headers=headers) as response:
                         return await response.json()
 
             if method == "POST":
-                request_params = {}
-                request_params["key"] = handler["key"]
-                request_params.update(arguments)
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(url, params=request_params) as response:
+                    async with session.post(url, json=arguments, headers=headers) as response:
                         return await response.json()
 
             raise ValueError(f"Unsupported HTTP method: {method}")
@@ -190,7 +185,7 @@ if __name__ == "__main__":
             "type": "http_api",
             "url": "http://v.juhe.cn/calendar/day",
             "method": "GET",
-            "key": "9c23e0927915f865f02247162db8900d",
+            "key": "your_juhe_api_key",
         },
     }
 
@@ -206,7 +201,7 @@ if __name__ == "__main__":
             "type": "http_api",
             "url": "http://apis.juhe.cn/simpleWeather/query",
             "method": "GET",
-            "key": "5e7d8a7d2682ab0d42306237666af91e",
+            "key": "your_juhe_api_key",
         },
     }
 

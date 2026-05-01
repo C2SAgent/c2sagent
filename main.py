@@ -22,9 +22,6 @@ from api.apps.agent.app_history import app as app_history
 
 from api.media.bilibili import app as media_bilibili
 
-load_dotenv()
-
-
 # 创建主应用
 app = FastAPI(title="C2SAgent", lifespan=lifespan)
 media = FastAPI(title="Media", lifespan=lifespan)
@@ -62,7 +59,7 @@ async def redoc_html():
 # 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应该更严格
+    allow_origins=os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

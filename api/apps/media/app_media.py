@@ -1,63 +1,30 @@
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent.parent.parent))
-
 from datetime import datetime
-import io
 import json
-import os
-import re
-from fastapi import (
-    Body,
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    Depends,
-    UploadFile,
-)
-import pandas as pd
-from pydantic import BaseModel
-from typing import Literal, Optional
-import asyncio
-from core.db.base_mongo import MongoDBManager
-from core.oss.base_oss import OSSManager
-from src_a2a.a2a_client.agent import Agent
-from api.apps.auths import auth
-from api.utils.api_utils import BaseResponse
-from core.db.base import DatabaseManager
-from core.llm.llm_client import LLMClient
-from model.model_agent import AgentCard, UserConfig
-from model import model_agent as models
-from fastapi.responses import StreamingResponse
-from fastapi import UploadFile, Form
-from datetime import datetime
-from fastapi.encoders import jsonable_encoder
-import re
-import json
-import pandas as pd
 import uuid
 
-
-from api.apps.agent.config import settings
+from fastapi import (
+    Body,
+    Depends,
+    FastAPI,
+    Request,
+)
+from fastapi.encoders import jsonable_encoder
 
 from api.apps.agent.database import engine
-
-from core.timeseries.time_gpt import TimeGPT
+from api.apps.auths import auth
+from api.utils.api_utils import BaseResponse
+from api.utils.db_utils import create_init_db
+from core import config as settings
+from core.db.base import DatabaseManager
+from model import model_agent as models
 
 DATABASE_URL = settings.DATABASE_URL
 db = DatabaseManager(DATABASE_URL)
 
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+from api.utils.db_utils import create_init_db
 
-
-app = FastAPI(on_startup=[init_db])
+app = FastAPI(on_startup=[create_init_db(engine, models.Base)])
 
 
 @app.get("/list", response_model=BaseResponse)

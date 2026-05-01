@@ -6,7 +6,7 @@ from model import model_agent as models
 from model.api_model import model_auth
 from . import auth
 from .database import engine, get_db
-from .config import settings
+from core import config as settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from jose import JWTError, jwt
@@ -19,13 +19,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# 创建数据库表（异步引擎会自动处理）
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+from api.utils.db_utils import create_init_db
 
-
-app = FastAPI(on_startup=[init_db])
+app = FastAPI(on_startup=[create_init_db(engine, models.Base)])
 
 
 @app.post("/token", response_model=model_auth.Token)

@@ -1,14 +1,8 @@
-from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
 from datetime import datetime
-import os
 
-load_dotenv()
-
-MONGO_URI = os.getenv(
-    "MONGO_URI", "mongodb://root:your_secure_password@localhost:27017/"
-)
+from core.config import MONGO_URI
 DB_NAME = "chatdb"
 COLLECTION_NAME = "sessions"
 

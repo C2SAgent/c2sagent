@@ -1,7 +1,7 @@
 from io import StringIO
 import tos
 
-from ..config import settings
+from core import config as settings
 
 
 class OSSManager:

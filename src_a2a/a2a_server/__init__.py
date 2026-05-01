@@ -15,22 +15,17 @@ from a2a.server.request_handlers.jsonrpc_handler import JSONRPCHandler
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-
-from core.db.base_sync import DatabaseManager
+from core.db.base import DatabaseManager
 
 from model.model_agent import AgentCard as AgentCard_
 
 from src_a2a.a2a_server.agent_executor import CoreAgentExecutor
 from starlette.responses import JSONResponse
 
-from api.apps.agent.config import settings
+from core import config as settings
 
-DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
-db = DatabaseManager(DATABASE_SYNC_URL)
-
-# 创建线程池执行器用于处理同步IO操作
-executor = ThreadPoolExecutor(max_workers=100)
+DATABASE_URL = settings.DATABASE_URL
+db = DatabaseManager(DATABASE_URL)
 
 class DynamicContextBuilder:
     """上下文构建器包装类，添加 agent_index 属性"""
@@ -103,14 +98,9 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
         self.agent_router.add_route("/", self._handle_dynamic_request, methods=["POST"])
 
     async def _get_agent_card_from_db(self, agent_index: str, request: Request) -> AgentCard:
-        """从数据库构建AgentCard（使用您提供的查询逻辑）"""
-        loop = asyncio.get_event_loop()
+        """Build an AgentCard from the database."""
         try:
-            # 将同步数据库操作放到线程池中执行
-            agent_data = await loop.run_in_executor(
-                executor, 
-                lambda: self.db.fetch_one(AgentCard_, id=agent_index)
-            )
+            agent_data = await self.db.fetch_one(AgentCard_, id=agent_index)
 
             return AgentCard(
                 name=agent_data.name,
@@ -249,9 +239,6 @@ class DatabaseA2AStarletteApplication(A2AStarletteApplication):
 
 import click
 import uvicorn
-
-DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
-db = DatabaseManager(DATABASE_SYNC_URL)
 
 def create_app():
     """应用工厂函数"""

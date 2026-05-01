@@ -5,7 +5,7 @@ from api.utils.api_utils import BaseResponse, ListResponse
 from core.db.base import DatabaseManager
 from model import model_agent as models
 from core.db.base_mongo import MongoDBManager
-from api.apps.agent.config import settings
+from core import config as settings
 
 from .database import engine
 
@@ -13,12 +13,9 @@ DATABASE_URL = settings.DATABASE_URL
 db = DatabaseManager(DATABASE_URL)
 
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+from api.utils.db_utils import create_init_db
 
-
-app = FastAPI(on_startup=[init_db])
+app = FastAPI(on_startup=[create_init_db(engine, models.Base)])
 
 
 @app.get("/list", response_model=ListResponse)

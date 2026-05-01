@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from model.model_timeseries import Base
 import os
 
-DATABASE_URL = "postgresql+asyncpg://postgres:postgre@localhost/timeseries"
+DATABASE_URL = os.getenv("TIMESERIES_DATABASE_URL", "postgresql+asyncpg://postgres:postgre@localhost/timeseries")
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)

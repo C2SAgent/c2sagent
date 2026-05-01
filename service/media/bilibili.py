@@ -1,17 +1,11 @@
 import base64
-import sys
-from pathlib import Path
-
 import requests
-
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
 import asyncio
 from core.db.base import DatabaseManager
 from model import model_agent as models
 
 from mcp.server.fastmcp import FastMCP
-from api.apps.agent.config import settings
+from core import config as settings
 
 DATABASE_URL = settings.DATABASE_URL
 db = DatabaseManager(DATABASE_URL)
@@ -241,14 +235,9 @@ class Bilibili:
                 return {"code": -1, "message": "未找到对应的B站账号配置"}
 
         else:
+            from types import SimpleNamespace
 
-            class Media:
-                sessdata: str = ""  # ""
-                jct: str = ""  # ""
-
-            media = Media()
-            media.sessdata = sessdata
-            media.jct = jct
+            media = SimpleNamespace(sessdata=sessdata, jct=jct)
 
         # 构造 HEADERS
         HEADERS = {

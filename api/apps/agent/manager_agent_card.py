@@ -1,14 +1,14 @@
 from typing import Annotated
 from fastapi import Body, FastAPI, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
-from grpc import Status
+from fastapi import status
 from api.apps.auths import auth
 from api.apps.auths.dependencies import token_required
 from api.utils.api_utils import BaseResponse, ListResponse
 from core.db.base import DatabaseManager
 from model.api_model import model_create_agent
 from model import model_agent as models
-from api.apps.agent.config import settings
+from core import config as settings
 from .database import engine, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
@@ -23,13 +23,9 @@ DATABASE_URL = settings.DATABASE_URL
 db = DatabaseManager(DATABASE_URL)
 
 
-# 异步创建表
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+from api.utils.db_utils import create_init_db
 
-
-app = FastAPI(on_startup=[init_db])
+app = FastAPI(on_startup=[create_init_db(engine, models.Base)])
 
 
 @app.post("/create", response_model=BaseResponse)
@@ -82,7 +78,7 @@ async def do_agent_create(
     except Exception as e:
         logger.error(f"Agent creation failed: {str(e)}")
         raise HTTPException(
-            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Agent creation failed",
         )
 
@@ -98,7 +94,7 @@ async def do_agent_list(
     except Exception as e:
         logger.error(f"Failed to list agents: {str(e)}")
         raise HTTPException(
-            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list agents",
         )
 
@@ -115,7 +111,7 @@ async def do_agent_delete(
         agent = await db.fetch_one(models.AgentCard, id=id, user_id=current_user.id)
         if not agent:
             raise HTTPException(
-                status_code=Status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Agent not found or not owned by user",
             )
 
@@ -125,7 +121,7 @@ async def do_agent_delete(
     except Exception as e:
         logger.error(f"Agent deletion failed: {str(e)}")
         raise HTTPException(
-            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Agent deletion failed",
         )
 
@@ -145,7 +141,7 @@ async def do_agent_corr_mcp(
         )
         if not agent:
             raise HTTPException(
-                status_code=Status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Agent not found or not owned by user",
             )
 
@@ -160,7 +156,7 @@ async def do_agent_corr_mcp(
     except Exception as e:
         logger.error(f"MCP correlation failed: {str(e)}")
         raise HTTPException(
-            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to correlate agent with MCP",
         )
 
@@ -182,7 +178,7 @@ async def do_agent_discorr_mcp(
         )
         if not relation:
             raise HTTPException(
-                status_code=Status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="No such correlation exists",
             )
 
@@ -198,7 +194,7 @@ async def do_agent_discorr_mcp(
     except Exception as e:
         logger.error(f"MCP disconnection failed: {str(e)}")
         raise HTTPException(
-            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to disconnect agent from MCP",
         )
 
@@ -217,7 +213,7 @@ async def do_find_mcp(
         )
         if not agent:
             raise HTTPException(
-                status_code=Status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Agent not found or not owned by user",
             )
 
@@ -234,6 +230,6 @@ async def do_find_mcp(
     except Exception as e:
         logger.error(f"Failed to find MCP: {str(e)}")
         raise HTTPException(
-            status_code=Status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to find MCP server",
         )

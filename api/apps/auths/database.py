@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from .config import settings
+from core import config as settings
 
 # 使用异步引擎 - 注意URL要以 asyncpg 或 aiomysql 开头
 # 例如：postgresql+asyncpg://user:password@localhost/dbname

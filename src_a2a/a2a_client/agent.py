@@ -31,13 +31,13 @@ from a2a.types import (
 )
 from jinja2 import Template
 
-from core.db.base_sync import DatabaseManager
+from core.db.base import DatabaseManager
 from model.model_agent import UserConfig
 
-from api.apps.agent.config import settings
+from core import config as settings
 
-DATABASE_SYNC_URL = settings.DATABASE_SYNC_URL
-db = DatabaseManager(DATABASE_SYNC_URL)
+DATABASE_URL = settings.DATABASE_URL
+db = DatabaseManager(DATABASE_URL)
 
 dir_path = Path(__file__).parent
 
@@ -229,7 +229,7 @@ class Agent:
         Returns:
             str or Generator[str]: The LLM response as a string or generator, depending on mode.
         """  # noqa: E501
-        user_find = db.fetch_one(UserConfig, id=self.user_id)
+        user_find = await db.fetch_one(UserConfig, id=self.user_id)
         core_llm_name = user_find.core_llm_name
         core_llm_url = user_find.core_llm_url
         core_llm_key = user_find.core_llm_key

@@ -46,7 +46,6 @@ dependencies = [
     "uvicorn==0.34.2",
     "websockets==15.0.1",
     "sqlalchemy",
-    "psycopg2",
     "tinydb>=4.8.2",
     "jose>=1.0.0",
     "passlib>=1.7.4",

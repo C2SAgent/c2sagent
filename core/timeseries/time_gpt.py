@@ -3,7 +3,7 @@ from nixtla import NixtlaClient
 from pandas import DataFrame
 import pandas as pd
 
-from ..config import settings
+from core import config as settings
 
 
 class TimeGPT:

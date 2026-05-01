@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import and_
+from sqlalchemy import and_, delete as sa_delete, update as sa_update
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Type, Any, List, Optional, Dict, Union, Tuple
@@ -41,22 +41,14 @@ class DatabaseManager:
         )
 
     async def _get_session(self) -> AsyncSession:
-        """获取一个新的数据库会话"""
+        """Get a new database session."""
         return self.Session()
-
-    def _get_session_sync(self):
-        """获取一个新的数据库会话"""
-        return self.Session()
-
-    def _close_session_sync(self, session):
-        """关闭数据库会话"""
-        if session:
-            session.close()
 
     async def _close_session(self, session: AsyncSession):
-        """关闭数据库会话"""
+        """Close database session."""
         if session:
             await session.close()
+
 
     async def fetch_one(self, model: Type[Base], **filters) -> Optional[Any]:
         """
@@ -221,62 +213,32 @@ class DatabaseManager:
     async def update(
         self, model: Type[Base], filters: Dict[str, Any], update_data: Dict[str, Any]
     ) -> int:
-        """
-        更新记录
-
-        Args:
-            model: SQLAlchemy模型类
-            filters: 筛选条件
-            update_data: 要更新的数据
-
-        Returns:
-            更新的记录数
-        """
         session = await self._get_session()
         try:
-            stmt = select(model).filter_by(**filters)
+            stmt = sa_update(model).filter_by(**filters).values(**update_data)
             result = await session.execute(stmt)
-            objects = result.scalars().all()
-
-            for obj in objects:
-                for key, value in update_data.items():
-                    setattr(obj, key, value)
-
             await session.commit()
-            return len(objects)
+            return result.rowcount
         except SQLAlchemyError as e:
             await session.rollback()
             raise e
         finally:
             await self._close_session(session)
+
 
     async def delete(self, model: Type[Base], **filters) -> int:
-        """
-        删除记录
-
-        Args:
-            model: SQLAlchemy模型类
-            filters: 筛选条件
-
-        Returns:
-            删除的记录数
-        """
         session = await self._get_session()
         try:
-            stmt = select(model).filter_by(**filters)
+            stmt = sa_delete(model).filter_by(**filters)
             result = await session.execute(stmt)
-            objects = result.scalars().all()
-
-            for obj in objects:
-                await session.delete(obj)
-
             await session.commit()
-            return len(objects)
+            return result.rowcount
         except SQLAlchemyError as e:
             await session.rollback()
             raise e
         finally:
             await self._close_session(session)
+
 
     async def fetch_or_insert(
         self,
@@ -316,19 +278,4 @@ class DatabaseManager:
         finally:
             await self._close_session(session)
 
-    def fetch_one_sync(self, model: Type[Base], **filters) -> Optional[Any]:
-        """
-        根据条件获取单个记录
 
-        Args:
-            model: SQLAlchemy模型类
-            filters: 查询条件，例如 id=1, name='test'
-
-        Returns:
-            查询到的记录对象或None
-        """
-        session = self._get_session_sync()
-        try:
-            return session.query(model).filter_by(**filters).first()
-        finally:
-            self._close_session_sync(session)

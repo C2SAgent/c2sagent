@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from .config import settings
+from core import config as settings
 from model.api_model.model_auth import TokenData
 from model.model_agent import UserConfig
 from .auth import oauth2_scheme
